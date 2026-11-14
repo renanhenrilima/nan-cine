@@ -2,3 +2,7 @@ _site/
 node_modules/
 .DS_Store
 Thumbs.db
+
+# Arquivos com chaves e tokens: nunca enviar
+tokens*.txt
+*.key

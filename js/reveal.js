@@ -112,9 +112,9 @@ function textoPortugues(f) {
   const p = f.portugues;
   if (!p) return '';
   if (p.original) return 'Áudio original em português.';
-  if (p.dublado && p.legendado) return 'Dublado e legendado (há trailers nas duas versões no Brasil).';
-  if (p.dublado) return 'Dublado (há trailer dublado no Brasil).';
-  if (p.legendado) return 'Legendado (há trailer legendado no Brasil).';
+  if (p.dublado && p.legendado) return 'Dublado e legendado (há trailers nas duas versões).';
+  if (p.dublado) return 'Dublado (há trailer dublado em português).';
+  if (p.legendado) return 'Legendado (há trailer legendado em português).';
   if (p.noBrasil) return 'Disponível em serviços no Brasil, que trazem legenda em português e, muitas vezes, dublagem.';
   if (p.trailer) return 'Tem trailer em português.';
   if (p.lancadoNoBrasil) return 'Foi lançado no Brasil, então existe versão legendada ou dublada.';

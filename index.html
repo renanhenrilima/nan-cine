@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Nan Cine: a roleta que escolhe o seu filme</title>
+  <meta name="description" content="Escolha os filtros, gire a roleta e descubra o filme de hoje, com nota do IMDb, sinopse e trailer em português.">
+  <meta name="theme-color" content="#22080F">
+  <meta property="og:title" content="Nan Cine: a roleta que escolhe o seu filme">
+  <meta property="og:description" content="Escolha os filtros, gire a roleta e descubra o filme de hoje.">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%238E1126' stroke='%23D9A441' stroke-width='4'/%3E%3Cpath d='M32 2v60M2 32h60M11 11l42 42M53 11L11 53' stroke='%23D9A441' stroke-width='2'/%3E%3Ccircle cx='32' cy='32' r='10' fill='%23D9A441'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Hanken+Grotesk:wght@400;500;600;700&family=Limelight&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://image.tmdb.org">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <a class="pular" href="#roleta">Ir direto para a roleta</a>
+
+  <header class="topo">
+    <a class="marca" href="./" aria-label="Nan Cine, início">Nan Cine</a>
+    <nav class="topo__acoes" aria-label="Ferramentas">
+      <button type="button" class="botao-topo" id="btn-lista">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+        <span>Minha lista</span>
+        <span class="contador" id="lista-contador" hidden>0</span>
+      </button>
+      <button type="button" class="botao-topo botao-topo--icone" id="btn-som" aria-pressed="true" aria-label="Som ligado">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/><path class="ondas" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path class="mudo" d="M16 9l5 6M21 9l-5 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <button type="button" class="botao-topo botao-topo--icone" id="btn-config" aria-label="Configurar chaves">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </nav>
+  </header>
+
+  <div class="faixa-demo" id="faixa-demo" hidden>
+    <p>Você está no modo demonstração, com 24 filmes de exemplo. Conecte a chave gratuita do TMDB para sortear entre milhares de filmes atualizados.</p>
+    <button type="button" class="botao botao--papel" id="btn-conectar">Conectar chave</button>
+  </div>
+
+  <main class="sala">
+    <section class="palco" aria-labelledby="letreiro">
+      <h1 class="letreiro" id="letreiro">Hoje quem escolhe o filme é a roleta</h1>
+
+      <div class="roleta" id="roleta" data-estado="carregando">
+        <div class="roleta__aro"><div class="lampadas" id="lampadas" aria-hidden="true"></div></div>
+        <div class="roleta__giro" id="giro"><canvas id="roda" role="img" aria-label="Roleta misteriosa: o filme só aparece quando ela para"></canvas></div>
+        <div class="roleta__ponteiro" id="ponteiro" aria-hidden="true"><i></i></div>
+        <button type="button" class="roleta__cubo" id="btn-girar" disabled>Girar</button>
+      </div>
+
+      <div class="situacao">
+        <p id="contagem" role="status" aria-live="polite">Buscando filmes…</p>
+        <button type="button" class="botao botao--contorno" id="btn-situacao" hidden></button>
+        <p class="situacao__dica">Cada giro sorteia um filme entre todos os que combinam com o ingresso. Ele só aparece quando a roleta para.</p>
+      </div>
+    </section>
+
+    <aside class="ingresso" id="ingresso" aria-labelledby="ingresso-titulo">
+      <header class="ingresso__topo">
+        <h2 id="ingresso-titulo">Seu ingresso</h2>
+        <p id="resumo-filtros">Sem filtros: qualquer filme pode sair.</p>
+      </header>
+
+      <form class="ingresso__corpo" id="form-filtros" autocomplete="off">
+        <fieldset class="campo">
+          <legend>Gênero</legend>
+          <p class="campo__dica">Um toque inclui, dois toques excluem.</p>
+          <div class="chips" id="f-generos"></div>
+          <div class="combinar" id="f-combinar" hidden>
+            <span>Com mais de um gênero marcado, o filme precisa ter</span>
+            <div class="chips chips--mini" id="f-combinar-opcoes"></div>
+          </div>
+        </fieldset>
+
+        <fieldset class="campo">
+          <legend>Época</legend>
+          <div class="chips" id="f-epoca"></div>
+          <div class="anos" id="f-anos" hidden>
+            <label>De <input type="number" id="f-ano-de" inputmode="numeric" min="1900" max="2100" placeholder="1990"></label>
+            <label>até <input type="number" id="f-ano-ate" inputmode="numeric" min="1900" max="2100" placeholder="2005"></label>
+          </div>
+        </fieldset>
+
+        <fieldset class="campo">
+          <legend><label for="f-nota" id="f-nota-rotulo">Nota mínima no IMDb</label></legend>
+          <div class="nota">
+            <input type="range" id="f-nota" min="0" max="9" step="0.5" value="0">
+            <output id="f-nota-valor" for="f-nota">Qualquer nota</output>
+          </div>
+        </fieldset>
+
+        <fieldset class="campo">
+          <legend>Em português</legend>
+          <div class="chips" id="f-portugues"></div>
+          <p class="campo__dica campo__dica--abaixo" id="f-portugues-dica"></p>
+        </fieldset>
+
+        <fieldset class="campo">
+          <legend>Duração</legend>
+          <div class="chips" id="f-duracao"></div>
+        </fieldset>
+
+        <fieldset class="campo">
+          <legend>Tipo de achado</legend>
+          <div class="chips" id="f-achado"></div>
+        </fieldset>
+
+        <fieldset class="campo" id="campo-provedores" hidden>
+          <legend>Onde assistir no Brasil</legend>
+          <div class="provedores" id="f-provedores"></div>
+        </fieldset>
+
+        <div class="campo campo--dupla">
+          <label>Idioma original
+            <select id="f-idioma"></select>
+          </label>
+          <label id="campo-classificacao">Classificação até
+            <select id="f-classificacao"></select>
+          </label>
+        </div>
+
+        <div class="ingresso__acoes">
+          <button type="button" class="botao botao--tinta" id="btn-surpresa">Sortear filtros</button>
+          <button type="button" class="botao botao--liso" id="btn-limpar">Limpar filtros</button>
+        </div>
+      </form>
+    </aside>
+  </main>
+
+  <footer class="rodape">
+    <p id="rodape-fontes">Catálogo, capas e trailers: TMDB. Este produto usa a API do TMDB, mas não é endossado nem certificado pelo TMDB. Notas: informação cortesia do IMDb (imdb.com), usada com permissão. Onde assistir: JustWatch.</p>
+  </footer>
+
+  <!-- Revelação do filme sorteado -->
+  <div class="revelacao" id="revelacao" role="dialog" aria-modal="true" aria-label="Filme sorteado" hidden>
+    <div class="tela">
+      <div class="tela__fundo" id="res-fundo"></div>
+      <div class="tela__rolagem" id="res-rolagem" tabindex="-1"></div>
+    </div>
+    <div class="cortina cortina--esq" aria-hidden="true"></div>
+    <div class="cortina cortina--dir" aria-hidden="true"></div>
+  </div>
+
+  <canvas class="confete" id="confete" aria-hidden="true" hidden></canvas>
+
+  <!-- Minha lista -->
+  <dialog class="gaveta" id="dlg-lista" aria-labelledby="lista-titulo">
+    <header class="gaveta__topo">
+      <h2 id="lista-titulo">Minha lista</h2>
+      <button type="button" class="fechar" data-fechar aria-label="Fechar lista">×</button>
+    </header>
+    <div class="gaveta__corpo" id="lista-corpo"></div>
+  </dialog>
+
+  <!-- Configuração das chaves -->
+  <dialog class="janela" id="dlg-config" aria-labelledby="config-titulo">
+    <form method="dialog" id="form-config">
+      <header class="janela__topo">
+        <h2 id="config-titulo">Conectar ao catálogo ao vivo</h2>
+        <button type="button" class="fechar" data-fechar aria-label="Fechar configuração">×</button>
+      </header>
+      <ol class="passos">
+        <li>Crie uma conta gratuita em <a href="https://www.themoviedb.org/signup" target="_blank" rel="noopener">themoviedb.org</a>.</li>
+        <li>Abra <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener">Configurações › API</a> e peça uma chave de uso pessoal.</li>
+        <li>Cole aqui a “Chave da API” ou o “Token de leitura”.</li>
+      </ol>
+      <label class="entrada">Chave do TMDB
+        <input type="text" id="cfg-tmdb" spellcheck="false" autocomplete="off" placeholder="Cole a chave aqui">
+      </label>
+      <label class="entrada">Chave do OMDb (opcional)
+        <input type="text" id="cfg-omdb" spellcheck="false" autocomplete="off" placeholder="Reserva para a nota do IMDb">
+        <small>Só é usada quando um filme não está na base de notas do IMDb que acompanha o app. Grátis em <a href="https://www.omdbapi.com/apikey.aspx" target="_blank" rel="noopener">omdbapi.com</a>.</small>
+      </label>
+      <p class="janela__aviso" id="cfg-aviso" role="status" aria-live="polite">As chaves ficam guardadas só neste navegador.</p>
+      <div class="janela__acoes">
+        <button type="submit" class="botao botao--latao" id="cfg-salvar">Salvar chaves</button>
+        <button type="button" class="botao botao--liso-claro" id="cfg-remover">Remover chaves</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

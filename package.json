@@ -1,0 +1,11 @@
+{
+  "name": "nan-cine",
+  "version": "0.1.0",
+  "description": "A roleta que escolhe o seu filme.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node servidor.mjs",
+    "imdb": "node ferramentas/atualizar-imdb.mjs"
+  }
+}

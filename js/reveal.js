@@ -116,6 +116,7 @@ function textoPortugues(f) {
   if (p.dublado) return 'Dublado (há trailer dublado no Brasil).';
   if (p.legendado) return 'Legendado (há trailer legendado no Brasil).';
   if (p.noBrasil) return 'Disponível em serviços no Brasil, que trazem legenda em português e, muitas vezes, dublagem.';
+  if (p.trailer) return 'Tem trailer em português.';
   if (p.lancadoNoBrasil) return 'Foi lançado no Brasil, então existe versão legendada ou dublada.';
   return 'Não achamos sinal de versão dublada ou legendada em português.';
 }

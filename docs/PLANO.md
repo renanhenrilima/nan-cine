@@ -1,6 +1,8 @@
 # Nan Cine: plano do projeto
 
-Situação em 14 de novembro de 2026: a primeira versão está construída e testada no computador. Falta você criar a chave gratuita do TMDB e publicar.
+Situação em 14 de novembro de 2026: o app está no ar em https://renanhenrilima.github.io/nan-cine/ (repositório: https://github.com/renanhenrilima/nan-cine), com o catálogo ao vivo do TMDB ligado e testado. A chave do TMDB está cadastrada como segredo `TMDB_KEY` do repositório. A publicação roda a cada envio para a `main` e todo dia, quando renova as notas do IMDb.
+
+Medição no TMDB real: sem filtro nenhum o catálogo tem **18.313 filmes**. O TMDB entrega no máximo 500 páginas (10 mil filmes) por ordenação, então o sorteio alterna entre nove ordenações, incluindo as invertidas, para alcançar o catálogo inteiro.
 
 ## 1. O que é
 
@@ -35,7 +37,9 @@ O arquivo do IMDb não tem títulos em português, sinopse, cartaz nem trailer. 
 | Opção | O que o app exige | Confiabilidade |
 |---|---|---|
 | Legendado ou dublado | Filme disponível em algum serviço no Brasil | Alta para legenda; dublagem é comum, mas não garantida |
-| Dublado | Existe trailer dublado cadastrado no Brasil | Alta quando aparece; deixa de fora filmes dublados sem trailer |
+| Com trailer em português | Existe trailer em português cadastrado no TMDB | Alta para o que promete (existe trailer), mas pode ser dublado ou legendado, do Brasil ou de Portugal; filmes novos ou menos conhecidos costumam ficar de fora |
+
+Houve uma opção "Dublado" na primeira versão. Foi retirada depois de medir no TMDB real: entre 20 filmes populares, nenhum tinha trailer com "dublado" no nome (3 diziam "legendado"), e muitos trailers em português são de Portugal, onde se diz "dobrado". Como o sinal não era confiável, o filtro devolvia quase nada.
 | Áudio original em português | Idioma original é português | Exata |
 
 A tela do resultado tem a linha "Em português", que diz qual sinal foi encontrado.
@@ -78,7 +82,7 @@ Escolhas e motivos:
 | Gênero | 18 gêneros; um toque inclui, dois excluem; "pelo menos um" ou "todos" | `with_genres`, `without_genres` |
 | Época | Em cartaz, último ano, décadas, até 1979, anos à escolha | `primary_release_date` |
 | Nota mínima no IMDb | 0 a 9, de meio em meio ponto | Pré-filtro no TMDB e conferência no IMDb |
-| Em português | Tanto faz, legendado ou dublado, dublado, áudio original | Ver seção 3 |
+| Em português | Tanto faz, legendado ou dublado, com trailer em português, áudio original | Ver seção 3 |
 | Duração | Até 1h30, de 1h30 a 2h, mais de 2h | `with_runtime` |
 | Tipo de achado | Populares, aclamados, joias escondidas | Piso e teto de votos, ordem do sorteio |
 | Onde assistir | Serviços de streaming do Brasil | `with_watch_providers` |
@@ -108,7 +112,7 @@ Testado no navegador (Chrome), em tela grande e em largura de celular (390 px):
 
 Testado com um TMDB simulado (31 verificações automáticas): montagem de todos os filtros, conferência da nota do IMDb, escolha do trailer em português, sinais de dublagem, onde assistir, sinopse de reserva em inglês.
 
-**Ainda não testado:** o catálogo ao vivo com uma chave real do TMDB, porque a chave depende de um cadastro seu. Os nomes dos parâmetros foram conferidos na documentação oficial do TMDB, mas o primeiro teste real acontece quando você conectar a chave. A publicação no GitHub Pages também não foi executada.
+Testado com o TMDB real (chave ligada, local e no link público): contagem sem filtro, giro completo com título em português e original, nota do IMDb, onde assistir e trailer, e filtros de nota do IMDb (7 a 9), gêneros (incluir, excluir, todos), época, idioma, classificação, duração, streaming e trailer em português. Notas do IMDb acima de 8,5 deixam poucos filmes (8,5+ rendeu 4 de 12; 9+ rendeu nenhum), e o app avisa quando nada passa pelo filtro.
 
 ## 8. Custos
 

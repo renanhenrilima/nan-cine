@@ -26,11 +26,11 @@ const ACHADOS = [
 ];
 const PORTUGUES = [
   ['qualquer', 'Tanto faz'], ['disponivel', 'Legendado ou dublado'],
-  ['dublado', 'Dublado'], ['original', 'Áudio original em português'],
+  ['trailer', 'Com trailer em português'], ['original', 'Áudio original em português'],
 ];
 const DICAS_PORTUGUES = {
-  disponivel: 'Sorteia só filmes disponíveis em serviços no Brasil, que trazem legenda em português e, muitas vezes, dublagem.',
-  dublado: 'Sorteia só filmes com trailer dublado cadastrado no Brasil. É o sinal mais seguro de dublagem, mas deixa de fora filmes dublados que não têm trailer.',
+  disponivel: 'Sorteia só filmes disponíveis em serviços no Brasil, que trazem legenda em português e, muitas vezes, dublagem. Nenhuma fonte gratuita confirma a dublagem filme a filme.',
+  trailer: 'Sorteia só filmes que têm trailer em português cadastrado (pode ser dublado ou legendado, do Brasil ou de Portugal). Filmes novos ou menos conhecidos costumam ficar de fora.',
   original: 'Sorteia só filmes falados em português.',
 };
 const COMBINAR = [['qualquer', 'pelo menos um deles'], ['todos', 'todos eles']];
@@ -52,6 +52,7 @@ const PADRAO = {
 };
 
 let filtros = { ...PADRAO, ...store.get('filtros', {}) };
+if (filtros.portugues === 'dublado') filtros.portugues = 'trailer'; // opção antiga, já renomeada
 filtros.generos = { ...(filtros.generos || {}) };
 filtros.provedores = [...(filtros.provedores || [])];
 
@@ -119,7 +120,7 @@ function textoContagem(total) {
   if (!api.modoAoVivo()) {
     return `${total} de ${FILMES_DEMO.length} filmes de exemplo combinam com seu ingresso`;
   }
-  const aproximado = filtros.portugues === 'dublado'
+  const aproximado = filtros.portugues === 'trailer'
     || (api.fonteDaNota() === 'imdb' && (Number(filtros.notaMin) > 0 || filtros.achado !== 'qualquer'));
   if (total === 1) return '1 filme combina com seu ingresso';
   return `${aproximado ? 'Cerca de ' : ''}${numero(total)} filmes combinam com seu ingresso`;

@@ -179,11 +179,14 @@ const DURACOES = {
   longo: [120, null],
 };
 
+// O TMDB entrega no máximo 500 páginas (10 mil filmes) por ordenação. Com as
+// ordenações invertidas, o sorteio também alcança o fim da lista, então um
+// catálogo de até 20 mil filmes fica inteiro ao alcance.
 const ORDENS_VARIADAS = [
-  'popularity.desc',
-  'vote_count.desc',
-  'vote_average.desc',
-  'primary_release_date.desc',
+  'popularity.desc', 'popularity.asc',
+  'vote_count.desc', 'vote_count.asc',
+  'vote_average.desc', 'vote_average.asc',
+  'primary_release_date.desc', 'primary_release_date.asc',
   'revenue.desc',
 ];
 
@@ -258,14 +261,14 @@ function montarBusca(f) {
   const piso = fonteDaNota() === 'imdb' ? notaMin - 1 : notaMin;
   if (piso > 0) p['vote_average.gte'] = piso;
 
-  // Trailer dublado é mais comum nos filmes populares: sorteia entre eles.
-  const soDublado = f.portugues === 'dublado';
-  if (soDublado) {
+  // Trailer em português é mais comum nos filmes populares: sorteia entre eles.
+  const soTrailerPt = f.portugues === 'trailer';
+  if (soTrailerPt) {
     ordem = 'popularity.desc';
     tetoPaginas = Math.min(tetoPaginas, 60);
   }
 
-  return { params: p, ordem, tetoPaginas, notaMin, soDublado };
+  return { params: p, ordem, tetoPaginas, notaMin, soTrailerPt };
 }
 
 /** Sinais de que o filme tem versão em português (ver comentário em montarBusca). */
@@ -276,7 +279,9 @@ function sinaisDePortugues(d, noBrasil, lancamentoBR) {
     : false;
   return {
     original: d.original_language === 'pt',
-    dublado: videosPt.some((v) => /dublad/i.test(v.name || '')),
+    trailer: videosPt.length > 0,
+    // "Dobrado" é como se diz dublado em Portugal.
+    dublado: videosPt.some((v) => /dublad|dobrad/i.test(v.name || '')),
     legendado: videosPt.some((v) => /legendad/i.test(v.name || '')),
     noBrasil: ofertas,
     lancadoNoBrasil: Boolean(lancamentoBR),
@@ -335,7 +340,7 @@ function paginasAleatorias(max, quantas) {
 export async function sortearCandidatos(filtros, vistos = new Set(), quantos = CONFIG.AMOSTRA) {
   if (!modoAoVivo()) return sortearDemo(filtros, vistos, quantos);
 
-  const { params, ordem, tetoPaginas, notaMin, soDublado } = montarBusca(filtros);
+  const { params, ordem, tetoPaginas, notaMin, soTrailerPt } = montarBusca(filtros);
   const assinatura = JSON.stringify(params);
 
   let meta = totais.get(assinatura);
@@ -348,8 +353,9 @@ export async function sortearCandidatos(filtros, vistos = new Set(), quantos = C
 
   const max = Math.max(1, Math.min(meta.paginas, 500, tetoPaginas));
   const usarImdb = fonteDaNota() === 'imdb';
-  const conferirUmAUm = usarImdb || soDublado;
-  const levas = soDublado ? 3 : 2;
+  const conferirUmAUm = usarImdb || soTrailerPt;
+  // Notas altas no IMDb eliminam muita gente na conferência: tenta mais levas.
+  const levas = soTrailerPt || (usarImdb && notaMin >= 7) ? 4 : 2;
   const escolhidos = new Map();
 
   // Mais de uma leva só acontece se a conferência filme a filme cortou gente demais.
@@ -372,8 +378,8 @@ export async function sortearCandidatos(filtros, vistos = new Set(), quantos = C
       if (usarImdb && notaMin > 0) {
         candidatos = candidatos.filter((filme) => notaDeReferencia(filme) >= notaMin);
       }
-      if (soDublado) {
-        candidatos = candidatos.filter((filme) => filme.portugues?.dublado || filme.portugues?.original);
+      if (soTrailerPt) {
+        candidatos = candidatos.filter((filme) => filme.portugues?.trailer || filme.portugues?.original);
       }
     }
     for (const filme of candidatos) {

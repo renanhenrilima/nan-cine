@@ -326,12 +326,23 @@ function resumir(m) {
   };
 }
 
-function paginasAleatorias(max, quantas) {
+/** Sorteia páginas ainda não lidas (`lidas`), sem repetir nenhuma. */
+function paginasAleatorias(max, quantas, lidas = new Set()) {
+  const alvo = Math.min(max - lidas.size, quantas);
   const escolhidas = new Set();
-  const alvo = Math.min(max, quantas);
-  while (escolhidas.size < alvo) escolhidas.add(1 + Math.floor(Math.random() * max));
+  while (escolhidas.size < alvo) {
+    const pagina = 1 + Math.floor(Math.random() * max);
+    if (!lidas.has(pagina)) escolhidas.add(pagina);
+  }
   return [...escolhidas];
 }
+
+// Filmes que já passaram na conferência (nota do IMDb, trailer em português) em cada
+// busca. Notas altas deixam pouquíssimos filmes, e uma rodada de páginas sorteadas
+// pode não achar nenhum mesmo existindo: guardar os aprovados evita o "nenhum
+// resultado" na segunda tentativa com o mesmo filtro.
+const aprovadosPorBusca = new Map();
+const LEVAS_EXTRAS = 10;
 
 /**
  * Sorteia até `quantos` filmes que passam pelos filtros.
@@ -356,11 +367,19 @@ export async function sortearCandidatos(filtros, vistos = new Set(), quantos = C
   const conferirUmAUm = usarImdb || soTrailerPt;
   // Notas altas no IMDb eliminam muita gente na conferência: tenta mais levas.
   const levas = soTrailerPt || (usarImdb && notaMin >= 7) ? 4 : 2;
+  const aprovados = aprovadosPorBusca.get(assinatura) || new Map();
+  aprovadosPorBusca.set(assinatura, aprovados);
   const escolhidos = new Map();
+  const lidas = new Set();
 
   // Mais de uma leva só acontece se a conferência filme a filme cortou gente demais.
-  for (let leva = 0; leva < levas && escolhidos.size < quantos; leva++) {
-    const paginas = paginasAleatorias(max, 3);
+  // Se nada passou e nada foi aprovado antes, segue lendo páginas novas até achar ou
+  // até acabarem: "nenhum filme" só vale quando o catálogo filtrado foi percorrido.
+  for (let leva = 0; escolhidos.size < quantos && lidas.size < max; leva++) {
+    const guardados = [...aprovados.values()].filter((f) => !vistos.has(f.id)).length;
+    if (leva >= levas && (guardados || escolhidos.size || leva >= levas + LEVAS_EXTRAS)) break;
+    const paginas = paginasAleatorias(max, 3, lidas);
+    paginas.forEach((pagina) => lidas.add(pagina));
     const respostas = await Promise.all(
       paginas.map((page) => tmdb('/discover/movie', { ...params, sort_by: ordem, page })),
     );
@@ -374,18 +393,29 @@ export async function sortearCandidatos(filtros, vistos = new Set(), quantos = C
 
     let candidatos = embaralhar([...unicos.values()]);
     if (conferirUmAUm) {
-      candidatos = await enriquecer(candidatos.slice(0, quantos + 10));
+      // Com nota muito alta sobram poucos filmes: confere mais deles por leva.
+      const lote = usarImdb && notaMin >= 8 ? 40 : quantos + 10;
+      candidatos = await enriquecer(candidatos.slice(0, lote));
       if (usarImdb && notaMin > 0) {
         candidatos = candidatos.filter((filme) => notaDeReferencia(filme) >= notaMin);
       }
       if (soTrailerPt) {
         candidatos = candidatos.filter((filme) => filme.portugues?.trailer || filme.portugues?.original);
       }
+      for (const filme of candidatos) aprovados.set(filme.id, filme);
     }
     for (const filme of candidatos) {
       if (escolhidos.size < quantos) escolhidos.set(filme.id, filme);
     }
-    if (max <= 3 || !conferirUmAUm) break; // não há páginas novas a tentar
+    if (!conferirUmAUm) break;
+  }
+
+  // Completa com filmes aprovados em rodadas anteriores desta mesma busca.
+  if (conferirUmAUm && escolhidos.size < quantos) {
+    const reserva = embaralhar([...aprovados.values()].filter((f) => !vistos.has(f.id) && !escolhidos.has(f.id)));
+    for (const filme of reserva) {
+      if (escolhidos.size < quantos) escolhidos.set(filme.id, filme);
+    }
   }
 
   return { total: meta.total, filmes: [...escolhidos.values()] };

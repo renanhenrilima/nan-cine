@@ -28,6 +28,41 @@
 <body>
   <a class="pular" href="#btn-girar">Ir direto para o botão Girar</a>
 
+  <!-- Página de entrada: é a porta de acesso a todo o app. Fica por cima de tudo até o login. -->
+  <section class="entrada-pagina" id="entrada" data-estado="carregando" aria-labelledby="entrada-titulo">
+    <div class="entrada__cortina entrada__cortina--esq" aria-hidden="true"></div>
+    <div class="entrada__cortina entrada__cortina--dir" aria-hidden="true"></div>
+    <div class="entrada__centro">
+      <h1 class="entrada__marca" id="entrada-titulo">Nan Cine</h1>
+      <p class="entrada__lema">A roleta que escolhe o seu filme</p>
+
+      <div class="entrada__ingresso">
+        <p class="entrada__convite" id="entrada-convite" hidden></p>
+
+        <div class="entrada__bloco entrada__bloco--carregando" role="status">
+          <span class="entrada__giro" aria-hidden="true"></span>
+          <p>Abrindo o cinema…</p>
+        </div>
+
+        <div class="entrada__bloco entrada__bloco--login">
+          <p class="entrada__texto">Entre para sentar na plateia. Seus filtros, filmes, notas e salas ficam guardados na sua conta.</p>
+          <button type="button" class="botao-google" id="btn-entrar-google">
+            <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+            <span>Entrar com Google</span>
+          </button>
+          <p class="entrada__aviso" id="entrada-aviso" role="status" aria-live="polite"></p>
+          <button type="button" class="botao botao--liso" id="btn-entrar-aba" hidden>Entrar nesta aba</button>
+          <p class="entrada__nota">No primeiro acesso você escolhe um apelido e uma foto para o seu perfil.</p>
+        </div>
+
+        <div class="entrada__bloco entrada__bloco--erro" role="alert">
+          <p class="entrada__texto" id="entrada-erro-texto"></p>
+          <button type="button" class="botao botao--tinta" id="btn-entrada-tentar">Tentar de novo</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <header class="topo">
     <a class="marca" href="./" aria-label="Nan Cine, início">Nan Cine</a>
     <nav class="topo__acoes" aria-label="Ferramentas">

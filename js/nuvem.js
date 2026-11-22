@@ -27,6 +27,10 @@ export function iniciarNuvem() {
   if (!nuvemDisponivel()) return Promise.resolve(null);
   pronta ??= (async () => {
     try {
+      // No teste local, sem os emuladores ligados o app abre sem contas (npm run site).
+      if (ehLocal) {
+        await fetch(`http://${HOST}:${EMULADORES.auth}/`, { mode: 'no-cors', signal: AbortSignal.timeout(1500) });
+      }
       const [appM, a, f] = await Promise.all([
         import(`${CDN}firebase-app.js`),
         import(`${CDN}firebase-auth.js`),

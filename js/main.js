@@ -812,10 +812,71 @@ setInterval(() => {
   atualizarComandos();
 }, 15_000);
 
+/* ---------- Página de entrada (login obrigatório) ---------- */
+
+const entrada = $('#entrada');
+const botaoGoogle = $('#btn-entrar-google');
+const rotuloGoogle = $('#btn-entrar-google span').textContent;
+
+/**
+ * Estados da página de entrada: 'carregando' (ainda não sabemos se já há login), 'login',
+ * 'erro' (sem conexão) e 'aberto' (entrou: mostra o app).
+ */
+function mostrarEntrada(estado) {
+  const aberto = estado === 'aberto';
+  entrada.hidden = aberto;
+  entrada.dataset.estado = estado;
+  // Enquanto a porta está fechada, nada do app recebe toque nem foco.
+  for (const el of document.querySelectorAll('.topo, .faixa-demo, .faixa-sala, .cinema, .rodape')) el.inert = !aberto;
+  if (estado === 'login') {
+    botaoGoogle.disabled = false;
+    botaoGoogle.querySelector('span').textContent = rotuloGoogle;
+    botaoGoogle.focus({ preventScroll: true });
+  }
+}
+
+function avisoDaEntrada(texto, comPlanoB = false) {
+  $('#entrada-aviso').textContent = texto;
+  $('#btn-entrar-aba').hidden = !comPlanoB;
+}
+
+// O botão abre a janelinha do Google direto do toque (senão o navegador a bloqueia).
+botaoGoogle.addEventListener('click', async () => {
+  botaoGoogle.disabled = true;
+  botaoGoogle.querySelector('span').textContent = 'Aguardando o Google…';
+  avisoDaEntrada('');
+  try {
+    await nuvem.entrar();
+  } catch (erro) {
+    if (['auth/popup-blocked', 'auth/operation-not-supported-in-this-environment'].includes(erro.code)) {
+      avisoDaEntrada('O navegador bloqueou a janela do Google. Libere os pop-ups deste site ou entre por esta aba.', true);
+    } else {
+      console.warn(erro);
+      avisoDaEntrada('Não foi possível entrar. Tente de novo.');
+    }
+  } finally {
+    // Se entrou, a página some sozinha; se a pessoa fechou a janela, o botão volta.
+    botaoGoogle.disabled = false;
+    botaoGoogle.querySelector('span').textContent = rotuloGoogle;
+  }
+});
+$('#btn-entrar-aba').addEventListener('click', () => {
+  nuvem.entrarNestaAba().catch(() => avisoDaEntrada('Não foi possível entrar. Tente de novo.'));
+});
+$('#btn-entrada-tentar').addEventListener('click', () => location.reload());
+
 /* ---------- Conta ---------- */
 
 let nuvemPronta = false;
 let convitePendente = null;
+let linkDiretoFeito = false;
+
+/** Abre o filme de um link compartilhado (?filme=ID), depois do login e do perfil. */
+function tentarLinkDireto() {
+  if (linkDiretoFeito || !meus.conta || !meus.perfilCompleto) return;
+  linkDiretoFeito = true;
+  abrirLinkDireto();
+}
 
 function pintarConta(conta) {
   const botao = $('#btn-conta');
@@ -1129,6 +1190,7 @@ $('#boasvindas-salvar').addEventListener('click', async () => {
     dlgBoasVindas.close();
     avisar(`Perfil criado. Bem-vindo, ${apelido}!`);
     pintarConta(meus.conta);
+    tentarLinkDireto();
   } catch (erro) {
     console.warn(erro);
     const aviso = $('#boasvindas-aviso');
@@ -1166,7 +1228,15 @@ async function iniciarConta() {
   const fb = await nuvem.iniciarNuvem();
   nuvemPronta = Boolean(fb);
   pintarConta(null);
-  if (!fb) return;
+  if (!fb) {
+    if (nuvem.ehLocal) {
+      mostrarEntrada('aberto'); // teste local sem os emuladores: o app abre sem contas
+    } else {
+      $('#entrada-erro-texto').textContent = 'Não foi possível conectar ao Nan Cine. Confira sua internet e tente de novo.';
+      mostrarEntrada('erro');
+    }
+    return;
+  }
 
   let primeira = true;
   nuvem.aoMudarConta(async (conta) => {
@@ -1177,7 +1247,9 @@ async function iniciarConta() {
       perfilAberto = null;
       for (const d of [dlgConta, dlgBoasVindas, dlgNota]) d.close();
     }
-    verificarPerfil();
+    verificarPerfil(); // primeiro acesso: abre a criação do perfil (apelido e foto) antes de tudo
+    mostrarEntrada(conta ? 'aberto' : 'login');
+    pintarConta(conta); // agora com o apelido e a foto do perfil
     if (!sala.ativa && meus.filtros) usarFiltros(meus.filtros);
     await sala.usarConta(conta).catch((erro) => console.warn('Sala:', erro));
     if (sala.ativa) usarFiltros(sala.dados.filtros);
@@ -1194,6 +1266,7 @@ async function iniciarConta() {
     }
     pintarSala();
     recarregarDisputa();
+    tentarLinkDireto();
   });
 }
 
@@ -1210,7 +1283,9 @@ function tratarConviteNaUrl() {
   else {
     convitePendente = codigo;
     store.set('convite', codigo);
-    abrirSala(`Você foi convidado para a sala ${codigo}. Entre com sua conta Google para sentar com a turma.`);
+    const convite = $('#entrada-convite');
+    convite.textContent = `Você foi convidado para a sala ${codigo}. Entre para sentar com a turma.`;
+    convite.hidden = false;
   }
 }
 
@@ -1860,6 +1935,14 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
 /* ---------- Largada ---------- */
 
 async function iniciar() {
+  // Com contas ligadas o login é obrigatório: a página de entrada cobre o app até saber quem é.
+  // Já aproveita para baixar o Firebase enquanto o resto carrega.
+  if (nuvem.nuvemDisponivel()) {
+    mostrarEntrada('carregando');
+    nuvem.iniciarNuvem();
+  } else {
+    mostrarEntrada('aberto');
+  }
   montarLampadas();
   montarFiltros();
   await meus.usarConta(null);
@@ -1877,7 +1960,7 @@ async function iniciar() {
   $('#btn-sala').hidden = false;
   iniciarConta();
   await recarregarDisputa();
-  abrirLinkDireto();
+  if (!nuvem.nuvemDisponivel()) abrirLinkDireto();
 }
 
 iniciar();

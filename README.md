@@ -36,6 +36,8 @@ Assim a chave fica só no seu navegador. Para todo visitante já entrar com o ca
 
 ## Contas, perfis e salas
 
+O login com Google é obrigatório: quem não entrou vê a página de entrada, e quem já entrou continua conectado nas próximas visitas. No teste local, sem os emuladores ligados (`npm run site`), o app abre sem login.
+
 Quem liga a conta Google precisa criar o perfil: apelido e foto (da galeria ou da câmera, com ajuste de posição e zoom; a foto sai com 192 × 192 e uns 15 KB). O perfil mostra os filmes assistidos e as notas, e quem divide uma sala vê o perfil dos outros. "Ver salas de cinema" lista todas as salas da pessoa. Tudo isso usa o Firebase (plano gratuito): para testar em casa os emuladores já fazem o papel dele; para o link público é preciso criar o projeto (ver `js/firebase-config.js`).
 
 ## Notas dos críticos (OMDb)

@@ -690,6 +690,7 @@ body.apagado .rodape { opacity: .35; transition: opacity 1.2s; }
   font-size: .78rem; color: rgb(243 227 195 / .5);
 }
 .rodape p { max-width: 96ch; }
+.rodape .botao { margin-bottom: 12px; }
 
 
 /* ---------- Revelação ---------- */

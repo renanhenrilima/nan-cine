@@ -199,13 +199,21 @@ function textoContagem(total) {
 
 let pedidoAtual = 0;
 
+// Os últimos filmes sorteados neste aparelho: com filtros apertados, o mesmo filme não volta logo.
+const RECENTES_MAX = 30;
+const recentes = () => store.get('recentes', []);
+function lembrarRecente(id) {
+  store.set('recentes', [id, ...recentes().filter((x) => x !== id)].slice(0, RECENTES_MAX));
+}
+
 async function recarregarDisputa() {
   const meu = ++pedidoAtual;
   if (ocupado) return;
   definirEstado('carregando', 'Buscando filmes…');
 
   try {
-    const excluir = sala.ativa ? await sala.excluidos() : meus.excluidos();
+    // Além de ocultos e assistidos, não repete os últimos filmes sorteados neste aparelho.
+    const excluir = new Set([...(sala.ativa ? await sala.excluidos() : meus.excluidos()), ...recentes()]);
     const { total, filmes } = await api.sortearCandidatos(filtros, excluir, CONFIG.AMOSTRA);
     if (meu !== pedidoAtual) return;
 
@@ -305,6 +313,7 @@ async function executarSessao({ filme, parametros, anuncio = '', contexto = 'meu
 
   ocupado = false;
   contextoAberto = contexto;
+  lembrarRecente(filme.id);
   await revelacao.mostrar(filme, detalhes, { ...contextoDoFilme(filme.id, contexto), anuncio });
 }
 
@@ -1823,6 +1832,29 @@ async function abrirLinkDireto() {
   } catch {
     avisar('Não foi possível abrir o filme deste link.');
   }
+}
+
+/* ---------- Instalar como aplicativo (PWA) ---------- */
+
+let conviteDeInstalacao = null;
+window.addEventListener('beforeinstallprompt', (evento) => {
+  evento.preventDefault();
+  conviteDeInstalacao = evento;
+  $('#btn-instalar').hidden = false;
+});
+$('#btn-instalar').addEventListener('click', async () => {
+  if (!conviteDeInstalacao) return;
+  conviteDeInstalacao.prompt();
+  await conviteDeInstalacao.userChoice.catch(() => {});
+  conviteDeInstalacao = null;
+  $('#btn-instalar').hidden = true;
+});
+window.addEventListener('appinstalled', () => {
+  $('#btn-instalar').hidden = true;
+  avisar('Nan Cine instalado.');
+});
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 
 /* ---------- Largada ---------- */

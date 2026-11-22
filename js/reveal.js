@@ -79,10 +79,11 @@ function blocoCanhoto(f) {
     ? f.generosNomes
     : (f.generos || []).map((id) => GENEROS.find((g) => g.id === id)?.nome).filter(Boolean);
   const classificacao = f.classificacao === 'L' ? 'Livre' : (f.classificacao ? `${f.classificacao} anos` : '');
-  const estreia = f.data ? dataPorExtenso(f.data) : (f.ano || 'Data não informada');
+  const dataEstreia = f.estreiaBR || f.data;
+  const estreia = dataEstreia ? dataPorExtenso(dataEstreia) : (f.ano || 'Data não informada');
 
   const itens = [
-    ['Estreia', estreia],
+    [f.estreiaBR ? 'Estreia no Brasil' : 'Estreia', estreia],
     ['Duração', duracaoTexto(f.duracao)],
     ['Classificação', classificacao],
     ['Gênero', generos.slice(0, 3).join(', ')],

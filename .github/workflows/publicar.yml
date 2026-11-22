@@ -67,7 +67,7 @@ jobs:
       - name: Montar a pasta do site
         run: |
           mkdir _site
-          cp -r index.html css js dados _site/
+          cp -r index.html manifest.webmanifest sw.js css js img dados _site/
 
       - uses: actions/configure-pages@v5
 

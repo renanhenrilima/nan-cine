@@ -30,7 +30,8 @@ const TIPOS = {
 };
 
 // O servidor fica aberto para a rede de casa: só entrega o que o site usa.
-const PERMITIDOS = [/^\/$/, /^\/index\.html$/, /^\/css\/[\w.-]+\.css$/, /^\/js\/[\w.-]+\.js$/, /^\/dados\/imdb\/[\w.-]+\.(txt|json)$/, /^\/dados\/premios\.json$/, /^\/dados\/criticos\/[\w.-]+\.(txt|json)$/];
+const PERMITIDOS = [/^\/$/, /^\/index\.html$/, /^\/css\/[\w.-]+\.css$/, /^\/js\/[\w.-]+\.js$/, /^\/dados\/imdb\/[\w.-]+\.(txt|json)$/, /^\/dados\/premios\.json$/, /^\/dados\/criticos\/[\w.-]+\.(txt|json)$/,
+  /^\/img\/[\w.-]+\.png$/, /^\/manifest\.webmanifest$/, /^\/sw\.js$/];
 
 async function obterChave() {
   if (process.env.TMDB_KEY) return { chave: process.env.TMDB_KEY.trim(), origem: 'variável TMDB_KEY' };

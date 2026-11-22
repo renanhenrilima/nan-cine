@@ -396,9 +396,16 @@ function montarBusca(f) {
   if (excluir.length) p.without_genres = excluir.join(',');
 
   const { de, ate } = intervaloEpoca(f);
-  if (de) p['primary_release_date.gte'] = de;
-  if (ate) p['primary_release_date.lte'] = ate;
-  if (f.epoca === 'cartaz') p.with_release_type = '2|3';
+  if (f.epoca === 'cartaz') {
+    // "Em cartaz" vale para os cinemas do Brasil: usa a data de estreia aqui, não a mundial.
+    p.region = CONFIG.REGIAO;
+    p.with_release_type = '3';
+    if (de) p['release_date.gte'] = de;
+    if (ate) p['release_date.lte'] = ate;
+  } else {
+    if (de) p['primary_release_date.gte'] = de;
+    if (ate) p['primary_release_date.lte'] = ate;
+  }
 
   const [durMin, durMax] = DURACOES[f.duracao] || [null, null];
   if (durMin) p['with_runtime.gte'] = durMin;
@@ -481,6 +488,13 @@ function sinaisDePortugues(d, noBrasil, lancamentoBR) {
     // Tipos 2 e 3 do TMDB: estreia limitada e estreia nos cinemas.
     cinemaNoBrasil: Boolean(lancamentoBR?.release_dates?.some((r) => r.type === 2 || r.type === 3)),
   };
+}
+
+/** Data de estreia nos cinemas do Brasil (a mais antiga), ou a primeira data de lançamento daqui. */
+function estreiaNoBrasil(lanc) {
+  const datas = (lanc?.release_dates || []).map((r) => ({ tipo: r.type, dia: String(r.release_date || '').slice(0, 10) })).filter((r) => r.dia);
+  const cinema = datas.filter((r) => r.tipo === 2 || r.tipo === 3).map((r) => r.dia).sort();
+  return cinema[0] || datas.map((r) => r.dia).sort()[0] || '';
 }
 
 const lancamentoBR = (d) => d.release_dates?.results?.find((r) => r.iso_3166_1 === CONFIG.REGIAO);
@@ -728,6 +742,7 @@ export async function detalhes(id, idiomaOriginal) {
     elenco: (d.credits?.cast || []).slice(0, 5).map((c) => c.name),
     posterGrande: d.poster_path ? `${IMAGEM}w500${d.poster_path}` : null,
     imdbId,
+    estreiaBR: estreiaNoBrasil(lancBR),
     criticos: await criticosDe(imdbId),
     trailer: escolherTrailer(d.videos?.results),
     portugues: sinaisDePortugues(d, br, lancBR),

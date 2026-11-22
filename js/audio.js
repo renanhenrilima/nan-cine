@@ -260,7 +260,7 @@ export const som = {
     const t0 = ctx.currentTime;
     const geral = ctx.createGain();
     geral.gain.setValueAtTime(0.0001, t0);
-    geral.gain.exponentialRampToValueAtTime(0.5, t0 + 4);
+    geral.gain.exponentialRampToValueAtTime(0.9, t0 + 4);
     // Reverb: ruído que decai, como o eco de uma sala grande.
     const reverb = ctx.createConvolver();
     const imp = ctx.createBuffer(2, ctx.sampleRate * 2.6, ctx.sampleRate);
@@ -301,7 +301,7 @@ export const som = {
           filtro.frequency.value = 700 + k * 120;
           const vol = ctx.createGain();
           vol.gain.setValueAtTime(0.0001, t);
-          vol.gain.linearRampToValueAtTime(0.011, t + 2.2);
+          vol.gain.linearRampToValueAtTime(0.04, t + 2.2);
           vol.gain.linearRampToValueAtTime(0.0001, t + PASSO + 1.4);
           osc.connect(filtro).connect(vol).connect(entrada);
           osc.start(t);
@@ -316,7 +316,7 @@ export const som = {
         const vol = ctx.createGain();
         const ini = t + 1 + k * 0.95;
         vol.gain.setValueAtTime(0.0001, ini);
-        vol.gain.exponentialRampToValueAtTime(0.012, ini + 0.02);
+        vol.gain.exponentialRampToValueAtTime(0.05, ini + 0.02);
         vol.gain.exponentialRampToValueAtTime(0.0001, ini + 1.6);
         osc.connect(vol).connect(entrada);
         osc.start(ini);
@@ -325,7 +325,7 @@ export const som = {
       i++;
     };
     trilhaAtiva = { geral, relogio: setInterval(tocar, PASSO * 1000) };
-    tocar();
+    ctx.resume().then(tocar, tocar);
   },
 
   /** Burburinho da plateia antes do filme. Some sozinho quando as luzes apagam. */
@@ -334,7 +334,7 @@ export const som = {
     const t = ctx.currentTime;
     const geral = ctx.createGain();
     geral.gain.setValueAtTime(0.0001, t);
-    geral.gain.exponentialRampToValueAtTime(0.5, t + 2);
+    geral.gain.exponentialRampToValueAtTime(0.9, t + 2);
     geral.connect(saida);
     const vozes = [420, 680, 950, 1300].map((freq, i) => {
       const fonte = ctx.createBufferSource();
@@ -345,12 +345,12 @@ export const som = {
       filtro.frequency.value = freq;
       filtro.Q.value = 5;
       const vol = ctx.createGain();
-      vol.gain.value = 0.006;
+      vol.gain.value = 0.03;
       // Cada "voz" sobe e desce num ritmo próprio, como conversas soltas.
       const lfo = ctx.createOscillator();
       lfo.frequency.value = 0.7 + i * 0.53;
       const profundidade = ctx.createGain();
-      profundidade.gain.value = 0.005;
+      profundidade.gain.value = 0.022;
       lfo.connect(profundidade).connect(vol.gain);
       fonte.connect(filtro).connect(vol).connect(geral);
       fonte.start(t, Math.random() * 1.5);

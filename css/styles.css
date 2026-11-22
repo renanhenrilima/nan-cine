@@ -1228,6 +1228,7 @@ dialog::backdrop { background: rgb(10 2 5 / .72); backdrop-filter: blur(3px); }
 
 /* O botão do Google: branco, com o "G" colorido, no padrão da marca. */
 .botao-google {
+  margin: 0 auto; max-width: 320px;
   display: flex; align-items: center; justify-content: center; gap: 12px;
   width: 100%; min-height: 58px; padding: 0 22px;
   border: 1px solid #dadce0; border-radius: 999px;
@@ -1256,7 +1257,7 @@ dialog::backdrop { background: rgb(10 2 5 / .72); backdrop-filter: blur(3px); }
 }
 .entrada__marca { line-height: 0; text-shadow: none; font-size: 0; }
 .entrada__marca img { width: min(100%, 330px); height: auto; margin: 0 auto; }
-.entrada__lema { margin: 6px 0 14px; color: var(--tinta-suave); font-size: .98rem; }
+.entrada__lema { margin: 10px auto 20px; max-width: 30ch; color: var(--tinta); font-size: 1.02rem; font-weight: 600; line-height: 1.4; text-wrap: balance; }
 .rodape__logo { display: block; height: 38px; width: auto; margin: 0 0 12px; border-radius: 6px; opacity: .92; }
 .janela__logo { height: 40px; width: auto; flex: none; }
 .janela__topo:has(.janela__logo) { justify-content: flex-start; }

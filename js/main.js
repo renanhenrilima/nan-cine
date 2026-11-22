@@ -1817,6 +1817,7 @@ function pintarSom() {
 btnSom.addEventListener('click', () => {
   som.alternar();
   pintarSom();
+  if (som.ativo && elCinema.dataset.luz === 'acesa') som.ambiente();
 });
 
 // O burburinho da plateia começa no primeiro toque (o navegador só libera som depois disso).
@@ -1824,11 +1825,9 @@ btnSom.addEventListener('click', () => {
 // (já na página de entrada).
 const comecarAmbiente = () => {
   if (elCinema.dataset.luz === 'acesa') som.ambiente();
-  document.removeEventListener('pointerdown', comecarAmbiente);
-  document.removeEventListener('keydown', comecarAmbiente);
+  for (const tipo of ['pointerdown', 'touchstart', 'keydown', 'click']) document.removeEventListener(tipo, comecarAmbiente);
 };
-document.addEventListener('pointerdown', comecarAmbiente);
-document.addEventListener('keydown', comecarAmbiente);
+for (const tipo of ['pointerdown', 'touchstart', 'keydown', 'click']) document.addEventListener(tipo, comecarAmbiente);
 
 /* ---------- Configuração das chaves ---------- */
 

@@ -1,0 +1,7 @@
+56172	100	93	20779	Won 7 Oscars. 31 wins & 14 nominations total
+343660	48	45	20779	6 wins & 10 nominations total
+790636	77	92	20779	Won 3 Oscars. 86 wins & 88 nominations total
+2106476	77	92	20779	Nominated for 1 Oscar. 38 wins & 74 nominations total
+2119532	71	84	20779	Won 2 Oscars. 57 wins & 115 nominations total
+4925292	93	99	20779	Nominated for 5 Oscars. 124 wins & 228 nominations total
+9419884	60	73	20779	10 wins & 31 nominations total

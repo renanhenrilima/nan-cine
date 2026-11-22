@@ -1,0 +1,5 @@
+96874	57	63	20779	Nominated for 1 Oscar. 9 wins & 11 nominations total
+2084970	71	89	20779	Won 1 Oscar. 49 wins & 169 nominations total
+2527338	53	51	20779	Nominated for 3 Oscars. 21 wins & 56 nominations total
+3731562	62	75	20779	Nominated for 1 Oscar. 1 win & 24 nominations total
+4975722	99	98	20779	Won 3 Oscars. 237 wins & 315 nominations total

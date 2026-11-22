@@ -1,0 +1,6 @@
+109040	37	48	20779	5 wins & 6 nominations total
+212720	65	76	20779	Nominated for 2 Oscars. 18 wins & 71 nominations total
+2382320	68	83	20779	Won 1 Oscar. 54 wins & 75 nominations total
+3890160	86	92	20779	Nominated for 3 Oscars. 44 wins & 67 nominations total
+4425200	75	89	20779	4 wins & 11 nominations total
+8111088	x		20779	

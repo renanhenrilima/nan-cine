@@ -1,0 +1,5 @@
+120737	92	91	20779	Won 4 Oscars. 126 wins & 127 nominations total
+217505	72	72	20779	Nominated for 10 Oscars. 50 wins & 135 nominations total
+382625	46	25	20779	8 wins & 21 nominations total
+395169	79	91	20779	Nominated for 3 Oscars. 16 wins & 49 nominations total
+1228705	57	72	20779	Nominated for 1 Oscar. 7 wins & 45 nominations total

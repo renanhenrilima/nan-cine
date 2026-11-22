@@ -1,0 +1,4 @@
+398286	71	89	20779	Nominated for 1 Oscar. 10 wins & 42 nominations total
+467406	81	93	20779	Won 1 Oscar. 90 wins & 101 nominations total
+796366	82	94	20779	Won 1 Oscar. 27 wins & 95 nominations total
+1074638	81	92	20779	Won 2 Oscars. 82 wins & 125 nominations total

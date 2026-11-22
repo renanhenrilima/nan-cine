@@ -1,0 +1,8 @@
+33467	100	99	20779	Won 1 Oscar. 16 wins & 13 nominations total
+88763	88	93	20779	Won 1 Oscar. 30 wins & 28 nominations total
+118715	71	79	20779	7 wins & 18 nominations total
+118971	60	66	20779	2 wins & 7 nominations total
+369339	71	86	20779	Nominated for 2 Oscars. 22 wins & 73 nominations total
+388795	87	88	20779	Won 3 Oscars. 141 wins & 133 nominations total
+449467	69	68	20779	Won 1 Oscar. 45 wins & 137 nominations total
+1981115	54	67	20779	4 wins & 21 nominations total

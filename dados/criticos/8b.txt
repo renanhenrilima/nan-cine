@@ -1,0 +1,6 @@
+110475	59	82	20779	Nominated for 1 Oscar. 6 wins & 22 nominations total
+433035	56	60	20779	Nominated for 1 Oscar. 2 wins & 6 nominations total
+489099	35	15	20779	2 wins & 5 nominations total
+838283	51	54	20779	3 wins & 2 nominations total
+1022603	76	86	20779	17 wins & 58 nominations total
+1517451	88	90	20779	Won 1 Oscar. 101 wins & 289 nominations total

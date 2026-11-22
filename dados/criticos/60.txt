@@ -1,0 +1,4 @@
+103776	68	81	20779	Nominated for 2 Oscars. 2 wins & 29 nominations total
+118880	52	59	20779	Nominated for 2 Oscars. 7 wins & 11 nominations total
+1796960	x		20779	
+2024544	96	95	20779	Won 3 Oscars. 244 wins & 338 nominations total

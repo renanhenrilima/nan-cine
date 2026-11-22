@@ -6,17 +6,23 @@ A roleta que escolhe o seu filme. Você ajusta os filtros no "ingresso" e gira a
 
 O planejamento completo, as decisões e os próximos passos estão em [docs/PLANO.md](docs/PLANO.md).
 
-## Rodar no seu computador
+## Testar em casa (computador e celular)
 
-Dê dois cliques em `iniciar.bat`. Ele sobe um servidor local e abre `http://127.0.0.1:8642` no navegador.
+Precisa do Node, do Java 21 e do `firebase-tools` (`npm install -g firebase-tools`).
 
-Pelo terminal:
+Dê dois cliques em `iniciar.bat`, ou rode pelo terminal:
 
 ```bash
-node servidor.mjs
+npm start
 ```
 
-Sem chave configurada, o app abre em **modo demonstração**, com 24 filmes de exemplo. Serve para ver a roleta, os sons e as animações.
+Isso liga os emuladores do Firebase (contas, salas e notas ficam só no seu computador, sem conta nenhuma) e o site. A janela mostra dois endereços: um para o computador (`http://localhost:8642`) e outro para o celular no mesmo Wi-Fi (`http://192.168.x.x:8642`). Na primeira vez, o Windows pergunta se libera o acesso na rede: aceite para redes privadas.
+
+O login é de mentira, para teste: o botão "Entrar com Google" abre uma tela do emulador onde você cria uma conta qualquer. Para testar a sala sozinho no computador, abra duas abas com `?aba=1` no fim do endereço: cada aba fica com uma conta.
+
+Os dados de teste ficam na pasta `.emulador` e voltam na próxima vez. Para começar do zero, apague essa pasta.
+
+Só o site, sem contas e salas: `npm run site`.
 
 ## Ligar o catálogo ao vivo (grátis)
 
@@ -27,6 +33,14 @@ O catálogo vem do TMDB, que é gratuito para uso não comercial.
 3. No Nan Cine, clique em **Conectar chave** e cole a "Chave da API" (ou o "Token de leitura").
 
 Assim a chave fica só no seu navegador. Para todo visitante já entrar com o catálogo ligado, a chave precisa ir na publicação (veja abaixo).
+
+## Contas, perfis e salas
+
+Quem liga a conta Google precisa criar o perfil: apelido e foto (da galeria ou da câmera, com ajuste de posição e zoom; a foto sai com 192 × 192 e uns 15 KB). O perfil mostra os filmes assistidos e as notas, e quem divide uma sala vê o perfil dos outros. "Ver salas de cinema" lista todas as salas da pessoa. Tudo isso usa o Firebase (plano gratuito): para testar em casa os emuladores já fazem o papel dele; para o link público é preciso criar o projeto (ver `js/firebase-config.js`).
+
+## Notas dos críticos (OMDb)
+
+O script `ferramentas/atualizar-criticos.mjs` junta, a cada dia, as notas do Metacritic e do Rotten Tomatoes pelo OMDb (cota gratuita de 1.000 consultas por dia). A chave entra como segredo `OMDB_KEY` do repositório e não vai para o site. Para rodar à mão: `OMDB_KEY=xxxx TMDB_KEY=yyyy node ferramentas/atualizar-criticos.mjs --max 800`.
 
 ## Atualizar as notas do IMDb
 

@@ -1,0 +1,11 @@
+110912	95	92	20779	Won 1 Oscar. 69 wins & 73 nominations total
+317248	79	91	20779	Nominated for 4 Oscars. 76 wins & 50 nominations total
+449088	50	43	20779	Nominated for 2 Oscars. 23 wins & 51 nominations total
+1291584	71	84	20779	Nominated for 1 Oscar. 6 wins & 22 nominations total
+1504320	88	94	20779	Won 4 Oscars. 109 wins & 206 nominations total
+2109248	32	18	20779	5 wins & 23 nominations total
+2179136	73	71	20779	Won 1 Oscar. 25 wins & 45 nominations total
+2442560	x		20779	
+2584384	58	81	20779	Won 1 Oscar. 53 wins & 191 nominations total
+3501632	74	93	20779	6 wins & 52 nominations total
+5013056	94	92	20779	Won 3 Oscars. 69 wins & 237 nominations total

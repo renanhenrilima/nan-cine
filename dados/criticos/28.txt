@@ -1,0 +1,7 @@
+95016	72	94	20779	Nominated for 4 Oscars. 10 wins & 12 nominations total
+97576	65	84	20779	Won 1 Oscar. 9 wins & 24 nominations total
+107048	72	93	20779	Won 1 BAFTA Award. 7 wins & 17 nominations total
+120616	49	64	20779	Nominated for 1 Oscar. 5 wins & 24 nominations total
+1745960	78	96	20779	Won 1 Oscar. 114 wins & 237 nominations total
+4154664	64	79	20779	10 wins & 57 nominations total
+14452776	x		20779	

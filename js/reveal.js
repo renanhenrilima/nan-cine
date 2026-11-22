@@ -3,12 +3,14 @@
 
 import { GENEROS } from './demo-data.js';
 import { modoAoVivo, fonteDaNota } from './api.js';
-import { listas } from './storage.js';
 import { som } from './audio.js';
 import { confete } from './fx.js';
+import { htmlAvaliacao, ligarAvaliacoes } from './avaliacao.js';
 import {
-  esc, esperar, avisar, dataPorExtenso, duracaoTexto, nomeIdioma, nota1, movimentoReduzido,
+  esc, esperar, avisar, dataPorExtenso, duracaoTexto, nomeIdioma, nota1, movimentoReduzido, aoVoltar, premiosEmPortugues,
 } from './util.js';
+
+const ICONE_OCULTAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 const CIRCUNFERENCIA = 251.3; // 2π × raio 40 do anel da nota
 
@@ -24,6 +26,20 @@ function tituloEmLetras(titulo) {
   }).join(' ');
 }
 
+/** Notas dos críticos (Metacritic e Rotten Tomatoes) e resumo de prêmios, quando a base já tem o filme. */
+function blocoCriticos(f) {
+  const c = f.criticos;
+  if (!c) return '';
+  const notas = [
+    c.meta !== null ? `Metacritic ${c.meta}` : '',
+    c.rt !== null ? `Rotten Tomatoes ${c.rt}%` : '',
+  ].filter(Boolean);
+  const linhas = [];
+  if (notas.length) linhas.push(`<p class="nota-extra"><strong>Críticos:</strong> ${notas.join(' · ')}</p>`);
+  if (c.premio) linhas.push(`<p class="nota-extra"><strong>Prêmios:</strong> ${esc(premiosEmPortugues(c.premio))}</p>`);
+  return linhas.join('');
+}
+
 function blocoNotas(f) {
   const temImdb = Boolean(f.imdb?.nota);
   const nota = temImdb ? f.imdb.nota : f.nota;
@@ -31,7 +47,7 @@ function blocoNotas(f) {
   const fonte = temImdb ? 'IMDb' : 'TMDB';
 
   if (!nota) {
-    return '<p class="nota-extra">Este filme ainda não tem nota.</p>';
+    return `<p class="nota-extra">Este filme ainda não tem nota.</p>${blocoCriticos(f)}`;
   }
 
   let extra = '';
@@ -55,7 +71,7 @@ function blocoNotas(f) {
         <span>${votos ? `${votosCurtos(votos)} votos` : 'de 0 a 10'}</span>
       </div>
     </div>
-    ${extra}`;
+    <div class="res__notas-extra">${extra}${blocoCriticos(f)}</div>`;
 }
 
 function blocoCanhoto(f) {
@@ -112,18 +128,35 @@ function textoPortugues(f) {
   const p = f.portugues;
   if (!p) return '';
   if (p.original) return 'Áudio original em português.';
-  if (p.dublado && p.legendado) return 'Dublado e legendado (há trailers nas duas versões).';
-  if (p.dublado) return 'Dublado (há trailer dublado em português).';
-  if (p.legendado) return 'Legendado (há trailer legendado em português).';
+  if (p.cinemaNoBrasil && p.noBrasil) return 'Lançado nos cinemas do Brasil, onde a maioria tem sessão dublada, e disponível em serviços no Brasil. Não dá para confirmar a dublagem.';
+  if (p.cinemaNoBrasil) return 'Lançado nos cinemas do Brasil, onde a maioria tem sessão dublada. Não dá para confirmar a dublagem.';
   if (p.noBrasil) return 'Disponível em serviços no Brasil, que trazem legenda em português e, muitas vezes, dublagem.';
-  if (p.trailer) return 'Tem trailer em português.';
   if (p.lancadoNoBrasil) return 'Foi lançado no Brasil, então existe versão legendada ou dublada.';
   return 'Não achamos sinal de versão dublada ou legendada em português.';
 }
 
-function buscaYoutube(f) {
-  const ano = (f.data || '').slice(0, 4) || f.ano || '';
-  return `https://www.youtube.com/results?search_query=${encodeURIComponent(`${f.titulo} ${ano} trailer legendado`)}`;
+/** A busca é o nome do filme + "trailer" (por exemplo, "Superman trailer"). */
+const consultaYoutube = (f) => `${f.titulo} trailer`;
+
+function linkYoutube(f, classe = '') {
+  const consulta = consultaYoutube(f);
+  const href = `https://www.youtube.com/results?search_query=${encodeURIComponent(consulta)}`;
+  return `<a class="${classe}" href="${esc(href)}" target="_blank" rel="noopener" data-youtube="${esc(consulta)}">Ver no YouTube</a>`;
+}
+
+/** No celular, tenta abrir o app do YouTube; se ele não estiver instalado, abre o site. */
+function abrirNoYoutube(evento, consulta) {
+  const web = `https://www.youtube.com/results?search_query=${encodeURIComponent(consulta)}`;
+  const ua = navigator.userAgent || '';
+  if (/Android/i.test(ua)) {
+    evento.preventDefault();
+    location.href = `intent://www.youtube.com/results?search_query=${encodeURIComponent(consulta)}#Intent;scheme=https;package=com.google.android.youtube;S.browser_fallback_url=${encodeURIComponent(web)};end`;
+  } else if (/iPhone|iPad|iPod/i.test(ua)) {
+    evento.preventDefault();
+    location.href = `youtube://www.youtube.com/results?search_query=${encodeURIComponent(consulta)}`;
+    // Sem o app, a página continua aqui: abre o site depois de um instante.
+    setTimeout(() => { if (document.visibilityState === 'visible') window.open(web, '_blank', 'noopener'); }, 1400);
+  }
 }
 
 function blocoTrailer(f) {
@@ -134,7 +167,7 @@ function blocoTrailer(f) {
       <p>${modoAoVivo()
         ? 'O TMDB não tem trailer cadastrado para este filme.'
         : 'No modo demonstração o trailer abre direto no YouTube.'}</p>
-      <a class="botao botao--contorno" href="${esc(buscaYoutube(f))}" target="_blank" rel="noopener">Buscar trailer legendado no YouTube</a>
+      ${linkYoutube(f, 'botao botao--contorno')}
     </section>`;
   }
 
@@ -156,10 +189,60 @@ function blocoTrailer(f) {
   </section>`;
 }
 
-function montar(f) {
+/** Texto que aparece depois de "Vamos assistir" ou "Já vi". */
+function textoDaDecisao(ctx) {
+  const d = ctx.decisao;
+  if (!d) return '';
+  if (ctx.sala) {
+    const quem = d.eu ? 'Você escolheu' : `${esc(d.porNome)} escolheu`;
+    if (d.tipo === 'assistir') return `${quem} “Vamos assistir”. O filme foi para o histórico da sala; depois da sessão, cada um dá a sua nota.`;
+    if (d.tipo === 'visto') return `${quem} “Já vi”. O filme foi para o histórico da sala. Dê a sua nota:`;
+    return '';
+  }
+  if (d.tipo === 'assistir') return 'Bom filme! Ele foi para Meus filmes. Quando terminar, dê a sua nota por lá ou aqui.';
+  if (d.tipo === 'visto') return 'Guardado em Meus filmes. Ele não volta mais para a roleta. Dê a sua nota:';
+  return '';
+}
+
+/**
+ * "Girar de novo" (ou "Voltar para a sala"). No computador fica junto dos outros botões;
+ * no celular, no fim da página, depois do trailer, centralizado.
+ */
+function botaoVoltar(ctx, classe = '') {
+  return ctx.sala
+    ? `<button type="button" class="botao botao--contorno ${classe}" data-acao="fechar">Voltar para a sala</button>`
+    : `<button type="button" class="botao ${classe ? 'botao--contorno' : 'botao--latao'} ${classe}" data-acao="girar">Girar de novo</button>`;
+}
+
+function blocoDecidir(f, ctx) {
+  const escolhido = ctx.decisao?.tipo || '';
+  const travado = Boolean(escolhido);
+  const botao = (tipo, rotulo, classe) => `<button type="button" class="botao ${classe} botao--escolha" data-acao="${tipo}"
+    aria-pressed="${escolhido === tipo}" ${travado && escolhido !== tipo ? 'disabled' : ''}>${rotulo}</button>`;
+  const mostrarNota = (travado && f.id > 0) || ctx.nota != null;
+  const temNota = ctx.nota != null;
+  return `<div class="res__decidir anima" style="--o:7">
+    <div class="res__acoes">
+      ${botao('assistir', 'Vamos assistir', 'botao--latao')}
+      ${botao('visto', 'Já vi', 'botao--contorno')}
+      <button type="button" class="botao botao--ocultar" data-acao="ocultar" ${travado ? 'disabled' : ''}
+        aria-label="Ocultar dos resultados" title="Ocultar dos resultados: ele não sai mais no sorteio">${ICONE_OCULTAR}</button>
+      ${botaoVoltar(ctx, 'so-largo')}
+    </div>
+    <p class="res__decisao" data-decisao>${textoDaDecisao(ctx)}</p>
+    <div class="res__nota" data-nota-painel ${mostrarNota ? '' : 'hidden'}>
+      ${htmlAvaliacao({
+        id: f.id, valor: ctx.nota, contexto: 'resultado',
+        rotulo: temNota ? 'Sua nota' : 'Que nota você dá?',
+        botao: temNota ? 'Atualizar nota' : 'Salvar nota',
+      })}
+    </div>
+  </div>`;
+}
+
+function montar(f, ctx) {
   const cartaz = f.posterGrande || f.poster;
   const idioma = nomeIdioma(f.idioma);
-  const naLista = listas.temQueroVer(f.id);
   const ficha = [
     ['Em português', textoPortugues(f)],
     ['Direção', (f.diretores || []).join(', ')],
@@ -173,8 +256,7 @@ function montar(f) {
   const links = [
     f.imdbId ? `<a href="https://www.imdb.com/title/${esc(f.imdbId)}/" target="_blank" rel="noopener">Ver no IMDb</a>` : '',
     `<a href="https://www.adorocinema.com/pesquisar/?q=${encodeURIComponent(f.titulo)}" target="_blank" rel="noopener">Ver notas no AdoroCinema</a>`,
-    f.trailer ? `<a href="${esc(buscaYoutube(f))}" target="_blank" rel="noopener">Buscar trailer legendado</a>` : '',
-    modoAoVivo() && f.id > 0 ? '<button type="button" data-acao="copiar">Copiar link do filme</button>' : '',
+    linkYoutube(f),
   ].filter(Boolean).join('');
 
   return `
@@ -191,7 +273,7 @@ function montar(f) {
       </div>
 
       <div class="res__info">
-        <p class="res__anuncio anima" style="--o:0">A roleta escolheu</p>
+        <p class="res__anuncio anima" style="--o:0">${esc(ctx.anuncio || 'A roleta escolheu')}</p>
         <h2 class="res__titulo" aria-label="${esc(f.titulo)}"><span aria-hidden="true">${tituloEmLetras(f.titulo)}</span></h2>
         <p class="res__original anima" style="--o:1">Título original:
           <strong lang="${esc(f.idioma || '')}">${esc(f.original || f.titulo)}</strong>${idioma ? ` (${esc(idioma)})` : ''}</p>
@@ -203,16 +285,14 @@ function montar(f) {
           ficha.map(([r, v]) => `<div><dt>${r}:</dt><dd>${esc(v)}</dd></div>`).join('')
         }</dl>` : ''}
         ${blocoOnde(f)}
-        <div class="res__acoes anima" style="--o:7">
-          <button type="button" class="botao botao--latao" data-acao="girar">Girar de novo</button>
-          <button type="button" class="botao botao--contorno" data-acao="quero" aria-pressed="${naLista}">${naLista ? 'Na sua lista' : 'Quero ver'}</button>
-          <button type="button" class="botao botao--contorno" data-acao="visto">Já vi, não sugerir mais</button>
-        </div>
+        ${blocoDecidir(f, ctx)}
         <div class="res__links anima" style="--o:7">${links}</div>
       </div>
     </div>
 
     ${blocoTrailer(f)}
+
+    <div class="res__final so-estreito">${botaoVoltar(ctx)}</div>
   </article>`;
 }
 
@@ -245,15 +325,43 @@ function animarNota(rolagem) {
   requestAnimationFrame(quadro);
 }
 
-export function criarRevelacao({ raiz, rolagem, fundo, canvasConfete, aoFechar }) {
+export function criarRevelacao({ raiz, rolagem, fundo, canvasConfete, aoFechar, aoAcao, aoAvaliar }) {
   let aberta = false;
   let filme = null;
+  let ctx = {};
   let focoAnterior = null;
+  let liberarVolta = null;
 
-  async function mostrar(base, promessaDetalhes) {
+  ligarAvaliacoes(rolagem, async (id, nota) => {
+    if (!filme || id !== filme.id) return;
+    await aoAvaliar?.(filme, nota);
+    ctx.nota = nota;
+    const botao = rolagem.querySelector('[data-nota-painel] [data-salvar-nota]');
+    if (botao) botao.textContent = 'Atualizar nota';
+  });
+
+  /** Mostra quem decidiu o quê (na sala, a decisão pode chegar de outro aparelho). */
+  function atualizarDecisao(decisao, nota = ctx.nota) {
+    if (!aberta) return;
+    ctx = { ...ctx, decisao, nota };
+    for (const b of rolagem.querySelectorAll('.botao--escolha')) {
+      b.setAttribute('aria-pressed', String(b.dataset.acao === decisao?.tipo));
+      b.disabled = Boolean(decisao) && b.dataset.acao !== decisao.tipo;
+    }
+    const lixeira = rolagem.querySelector('[data-acao="ocultar"]');
+    if (lixeira) lixeira.disabled = Boolean(decisao);
+    const texto = rolagem.querySelector('[data-decisao]');
+    if (texto) texto.innerHTML = textoDaDecisao(ctx);
+    const painel = rolagem.querySelector('[data-nota-painel]');
+    if (painel && decisao && filme?.id > 0) painel.hidden = false;
+  }
+
+  async function mostrar(base, promessaDetalhes, contexto = {}) {
     if (aberta) return;
     aberta = true;
+    ctx = { ...contexto };
     focoAnterior = document.activeElement;
+    liberarVolta = aoVoltar(() => fechar({ peloVoltar: true }));
     const pausa = movimentoReduzido() ? 30 : 620;
 
     document.body.classList.add('travado');
@@ -270,7 +378,7 @@ export function criarRevelacao({ raiz, rolagem, fundo, canvasConfete, aoFechar }
     ]);
     filme = { ...base, ...(extra || {}) };
 
-    rolagem.innerHTML = montar(filme);
+    rolagem.innerHTML = montar(filme, ctx);
     rolagem.scrollTop = 0;
     if (filme.fundo) fundo.style.backgroundImage = `url("${filme.fundo}")`;
     raiz.dataset.fase = 'fechada';
@@ -290,9 +398,11 @@ export function criarRevelacao({ raiz, rolagem, fundo, canvasConfete, aoFechar }
     rolagem.focus({ preventScroll: true });
   }
 
-  async function fechar({ girar = false } = {}) {
+  async function fechar({ girar = false, peloVoltar = false } = {}) {
     if (!aberta) return;
     aberta = false;
+    if (!peloVoltar) liberarVolta?.();
+    liberarVolta = null;
     const pausa = movimentoReduzido() ? 30 : 600;
     raiz.dataset.fase = 'saindo';
     som.cortina();
@@ -307,6 +417,11 @@ export function criarRevelacao({ raiz, rolagem, fundo, canvasConfete, aoFechar }
   }
 
   rolagem.addEventListener('click', async (evento) => {
+    const yt = evento.target.closest('[data-youtube]');
+    if (yt) {
+      abrirNoYoutube(evento, yt.dataset.youtube);
+      return;
+    }
     const alvo = evento.target.closest('[data-acao]');
     if (!alvo || !filme) return;
     const { acao } = alvo.dataset;
@@ -314,29 +429,28 @@ export function criarRevelacao({ raiz, rolagem, fundo, canvasConfete, aoFechar }
     if (acao === 'fechar') fechar();
     if (acao === 'girar') fechar({ girar: true });
 
-    if (acao === 'quero') {
-      const ficou = listas.alternarQueroVer(filme);
-      alvo.setAttribute('aria-pressed', String(ficou));
-      alvo.textContent = ficou ? 'Na sua lista' : 'Quero ver';
-      if (ficou) som.brilho();
-      avisar(ficou ? 'Guardado em Minha lista.' : 'Retirado de Minha lista.');
-      document.dispatchEvent(new CustomEvent('nancine:listas'));
-    }
-
-    if (acao === 'visto') {
-      listas.marcarVisto(filme);
-      document.dispatchEvent(new CustomEvent('nancine:listas'));
-      avisar('Marcado como visto. Ele não volta mais para a roleta.');
-      fechar();
-    }
-
-    if (acao === 'copiar') {
-      const link = `${location.origin}${location.pathname}?filme=${filme.id}`;
+    if ((acao === 'assistir' || acao === 'visto') && alvo.getAttribute('aria-pressed') !== 'true') {
+      alvo.disabled = true;
       try {
-        await navigator.clipboard.writeText(link);
-        avisar('Link copiado.');
-      } catch {
-        avisar('Não deu para copiar. O link é: ' + link);
+        const feito = await aoAcao?.(acao, filme);
+        if (feito === false) return;
+        som.brilho();
+        atualizarDecisao({ tipo: acao, eu: true, porNome: 'Você' });
+        if (acao === 'visto') rolagem.querySelector('[data-nota-painel] input')?.focus();
+      } catch (erro) {
+        avisar(erro.message || 'Não foi possível salvar. Tente de novo.');
+      } finally {
+        alvo.disabled = false;
+      }
+    }
+
+    if (acao === 'ocultar') {
+      try {
+        await aoAcao?.('oculto', filme);
+        som.ocultar();
+        fechar();
+      } catch (erro) {
+        avisar(erro.message || 'Não foi possível ocultar. Tente de novo.');
       }
     }
 
@@ -376,5 +490,9 @@ export function criarRevelacao({ raiz, rolagem, fundo, canvasConfete, aoFechar }
     }
   });
 
-  return { mostrar, fechar, get aberta() { return aberta; } };
+  return {
+    mostrar, fechar, atualizarDecisao,
+    get aberta() { return aberta; },
+    get filme() { return aberta ? filme : null; },
+  };
 }

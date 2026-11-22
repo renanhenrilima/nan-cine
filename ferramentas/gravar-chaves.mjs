@@ -1,6 +1,10 @@
-// Usado na publicação automática: grava em js/config.js as chaves que vêm
-// das variáveis de ambiente TMDB_KEY e OMDB_KEY (segredos do GitHub).
-// Assim as chaves não precisam ficar escritas no repositório.
+// Usado na publicação automática: grava em js/config.js a chave do TMDB que vem
+// da variável de ambiente TMDB_KEY (segredo do GitHub).
+// Assim a chave não precisa ficar escrita no repositório.
+//
+// A chave do OMDb (OMDB_KEY) NÃO é gravada aqui: ela só é usada pelo script
+// ferramentas/atualizar-criticos.mjs, dentro do GitHub. Se fosse para o site, qualquer
+// pessoa poderia gastar a cota diária dela.
 //
 //   TMDB_KEY=xxxx node ferramentas/gravar-chaves.mjs [caminho-do-config]
 
@@ -14,7 +18,7 @@ const arquivo = process.argv[2] ? path.resolve(process.argv[2]) : padrao;
 let texto = await readFile(arquivo, 'utf8');
 let gravadas = 0;
 
-for (const nome of ['TMDB_KEY', 'OMDB_KEY']) {
+for (const nome of ['TMDB_KEY']) {
   const valor = (process.env[nome] || '').trim();
   if (!valor) continue;
   if (!/^[\w.-]+$/.test(valor)) {

@@ -4,7 +4,7 @@
 #   1. Settings › Pages › Source: "GitHub Actions"
 #   2. Settings › Secrets and variables › Actions › New repository secret
 #        TMDB_KEY = sua chave do TMDB   (obrigatório para o catálogo ao vivo)
-#        OMDB_KEY = sua chave do OMDb   (opcional)
+#        OMDB_KEY = sua chave do OMDb   (notas dos críticos; fica só no GitHub, não vai para o site)
 
 name: Publicar Nan Cine
 
@@ -42,10 +42,26 @@ jobs:
         run: node ferramentas/atualizar-imdb.mjs
         continue-on-error: true
 
-      - name: Gravar chaves
+      # Vencedores de prêmios (Wikidata + TMDB). Se falhar, segue com a lista que já está no repositório.
+      - name: Atualizar vencedores de prêmios
+        env:
+          TMDB_KEY: ${{ secrets.TMDB_KEY }}
+        run: node ferramentas/atualizar-premios.mjs
+        continue-on-error: true
+
+      # Notas dos críticos (OMDb). A cota gratuita é de 1.000 consultas por dia, então só as
+      # execuções diárias e manuais consultam; as demais apenas guardam o que já foi reunido.
+      - name: Atualizar notas dos críticos
         env:
           TMDB_KEY: ${{ secrets.TMDB_KEY }}
           OMDB_KEY: ${{ secrets.OMDB_KEY }}
+          CRITICOS_MAX: ${{ github.event_name == 'push' && '0' || '900' }}
+        run: node ferramentas/atualizar-criticos.mjs
+        continue-on-error: true
+
+      - name: Gravar chaves
+        env:
+          TMDB_KEY: ${{ secrets.TMDB_KEY }}
         run: node ferramentas/gravar-chaves.mjs
 
       - name: Montar a pasta do site

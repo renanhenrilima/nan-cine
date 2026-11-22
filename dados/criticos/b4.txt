@@ -1,0 +1,7 @@
+57012	97	97	20779	Nominated for 4 Oscars. 14 wins & 11 nominations total
+365748	76	92	20779	Nominated for 3 BAFTA Awards. 14 wins & 20 nominations total
+1028532		64	20779	1 nomination total
+1192628	75	88	20779	Won 1 Oscar. 46 wins & 25 nominations total
+1837492	x		20779	
+4034228	96	96	20779	Won 2 Oscars. 129 wins & 269 nominations total
+6751668	97	99	20779	Won 4 Oscars. 309 wins & 261 nominations total

@@ -6,3 +6,7 @@ Thumbs.db
 # Arquivos com chaves e tokens: nunca enviar
 tokens*.txt
 *.key
+
+# Teste local: dados e registros dos emuladores do Firebase
+.emulador/
+*-debug.log

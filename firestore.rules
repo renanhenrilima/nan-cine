@@ -1,0 +1,82 @@
+rules_version = '2';
+
+// Regras do banco do Nan Cine (as mesmas valem nos emuladores e no projeto publicado).
+service cloud.firestore {
+  match /databases/{banco}/documents {
+
+    function logado() {
+      return request.auth != null;
+    }
+
+    function mudouSo(campos) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(campos);
+    }
+
+    // Salas de cada pessoa (lista guardada no perfil dela).
+    function salasDe(uid) {
+      return get(/databases/$(banco)/documents/usuarios/$(uid)).data.get('salas', {}).keys();
+    }
+
+    // Quem divide pelo menos uma sala com a pessoa. O perfil só aparece na tela de quem
+    // está na mesma sala; as regras garantem o mesmo para o histórico de filmes e notas.
+    function mesmaSala(dono) {
+      return salasDe(request.auth.uid).hasAny(salasDe(dono));
+    }
+
+    // Perfil: qualquer pessoa logada lê (apelido, foto e ocultos, para a sala não sortear
+    // o que algum membro ocultou); só o dono escreve.
+    match /usuarios/{uid} {
+      allow read: if logado();
+      // A foto de perfil é uma imagem pequena (cerca de 15 KB) e o apelido é curto: os limites barram abusos.
+      allow write: if logado() && request.auth.uid == uid
+        && request.resource.data.get('fotoPropria', '').size() <= 50000
+        && request.resource.data.get('apelido', '').size() <= 24;
+
+      // Histórico de filmes assistidos e notas: o dono edita; quem divide uma sala lê.
+      match /historico/{filme} {
+        allow write: if logado() && request.auth.uid == uid;
+        allow read: if logado() && (request.auth.uid == uid || mesmaSala(uid));
+      }
+    }
+
+    match /salas/{sala} {
+      function membro() {
+        return request.auth.uid in resource.data.membros;
+      }
+
+      // Entrar na sala: a pessoa só pode acrescentar ou trocar a própria vaga.
+      function soAPropriaVaga() {
+        return mudouSo(['membros'])
+          && request.resource.data.membros.diff(resource.data.membros).affectedKeys().hasOnly([request.auth.uid]);
+      }
+
+      // Quem tem o código pode ver a sala (para entrar).
+      allow read: if logado();
+      allow create: if logado()
+        && request.resource.data.dono == request.auth.uid
+        && request.resource.data.membros.keys().hasOnly([request.auth.uid]);
+      allow update: if logado() && (membro() || soAPropriaVaga());
+      allow delete: if logado() && resource.data.dono == request.auth.uid;
+
+      match /historico/{filme} {
+        function membroDaSala() {
+          return request.auth.uid in get(/databases/$(banco)/documents/salas/$(sala)).data.membros;
+        }
+
+        // Cada um só escreve a própria nota.
+        function soAPropriaNota() {
+          return mudouSo(['notas', 'nomes'])
+            && request.resource.data.notas.diff(resource.data.notas).affectedKeys().hasOnly([request.auth.uid])
+            && request.resource.data.nomes.diff(resource.data.nomes).affectedKeys().hasOnly([request.auth.uid])
+            && request.resource.data.notas[request.auth.uid] is number
+            && request.resource.data.notas[request.auth.uid] >= 1
+            && request.resource.data.notas[request.auth.uid] <= 10;
+        }
+
+        allow read, create, delete: if logado() && membroDaSala();
+        allow update: if logado() && membroDaSala()
+          && (soAPropriaNota() || mudouSo(['decisao', 'por', 'porNome', 'em']));
+      }
+    }
+  }
+}

@@ -4,10 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Nan Cine: a roleta que escolhe o seu filme</title>
-  <meta name="description" content="Escolha os filtros, gire a roleta e descubra o filme de hoje, com nota do IMDb, sinopse e trailer em português.">
-  <meta name="theme-color" content="#22080F">
+  <meta name="description" content="Sente na poltrona, gire a roleta na tela e descubra o filme de hoje, sozinho ou numa sala com os amigos, com nota do IMDb, sinopse e trailer em português.">
+  <meta name="theme-color" content="#0d0608">
   <meta property="og:title" content="Nan Cine: a roleta que escolhe o seu filme">
-  <meta property="og:description" content="Escolha os filtros, gire a roleta e descubra o filme de hoje.">
+  <meta property="og:description" content="Sente na poltrona, gire a roleta na tela e descubra o filme de hoje.">
   <meta property="og:type" content="website">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%238E1126' stroke='%23D9A441' stroke-width='4'/%3E%3Cpath d='M32 2v60M2 32h60M11 11l42 42M53 11L11 53' stroke='%23D9A441' stroke-width='2'/%3E%3Ccircle cx='32' cy='32' r='10' fill='%23D9A441'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,21 +17,29 @@
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-  <a class="pular" href="#roleta">Ir direto para a roleta</a>
+  <a class="pular" href="#btn-girar">Ir direto para o botão Girar</a>
 
   <header class="topo">
     <a class="marca" href="./" aria-label="Nan Cine, início">Nan Cine</a>
     <nav class="topo__acoes" aria-label="Ferramentas">
-      <button type="button" class="botao-topo" id="btn-lista">
+      <button type="button" class="botao-topo" id="btn-sala" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18v-5a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v5M5 18v2M19 18v2M3 18h18M7 10V7a5 5 0 0 1 10 0v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="rotulo">Sala</span>
+      </button>
+      <button type="button" class="botao-topo" id="btn-historico">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
-        <span>Minha lista</span>
-        <span class="contador" id="lista-contador" hidden>0</span>
+        <span class="rotulo">Meus filmes</span>
+        <span class="contador" id="historico-contador" hidden aria-label="filmes esperando sua nota">0</span>
       </button>
       <button type="button" class="botao-topo botao-topo--icone" id="btn-som" aria-pressed="true" aria-label="Som ligado">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/><path class="ondas" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path class="mudo" d="M16 9l5 6M21 9l-5 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
       <button type="button" class="botao-topo botao-topo--icone" id="btn-config" aria-label="Configurar chaves">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <button type="button" class="botao-topo" id="btn-conta" hidden>
+        <span class="avatar avatar--topo" id="conta-avatar" aria-hidden="true"></span>
+        <span class="rotulo" id="conta-rotulo">Entrar</span>
       </button>
     </nav>
   </header>
@@ -41,33 +49,94 @@
     <button type="button" class="botao botao--papel" id="btn-conectar">Conectar chave</button>
   </div>
 
-  <main class="sala">
-    <section class="palco" aria-labelledby="letreiro">
-      <h1 class="letreiro" id="letreiro">Hoje quem escolhe o filme é a roleta</h1>
+  <div class="faixa-sala" id="faixa-sala" hidden>
+    <p><span class="faixa-sala__nome" id="sala-nome"></span> <span class="faixa-sala__codigo">código <b id="sala-codigo"></b></span></p>
+    <div class="faixa-sala__acoes">
+      <button type="button" class="botao botao--mini" id="btn-convidar">Convidar</button>
+      <button type="button" class="botao botao--mini botao--fantasma" id="btn-salas-faixa">Salas</button>
+    </div>
+  </div>
 
-      <div class="roleta" id="roleta" data-estado="carregando">
-        <div class="roleta__aro"><div class="lampadas" id="lampadas" aria-hidden="true"></div></div>
-        <div class="roleta__giro" id="giro"><canvas id="roda" role="img" aria-label="Roleta misteriosa: o filme só aparece quando ela para"></canvas></div>
-        <div class="roleta__ponteiro" id="ponteiro" aria-hidden="true"><i></i></div>
-        <button type="button" class="roleta__cubo" id="btn-girar" disabled>Girar</button>
-      </div>
+  <main class="cinema" id="cinema" data-luz="acesa">
+    <div class="cinema__parede" aria-hidden="true">
+      <span class="arandela arandela--esq"></span>
+      <span class="arandela arandela--dir"></span>
+    </div>
 
-      <div class="situacao">
-        <p id="contagem" role="status" aria-live="polite">Buscando filmes…</p>
-        <button type="button" class="botao botao--contorno" id="btn-situacao" hidden></button>
-        <p class="situacao__dica">Cada giro sorteia um filme entre todos os que combinam com o ingresso. Ele só aparece quando a roleta para.</p>
+    <section class="palco" aria-label="Tela do cinema">
+      <div class="sanefa" aria-hidden="true"></div>
+      <div class="drapeado drapeado--esq" aria-hidden="true"></div>
+      <div class="drapeado drapeado--dir" aria-hidden="true"></div>
+
+      <div class="telao" id="telao">
+        <div class="roleta" id="roleta" data-estado="carregando">
+          <div class="roleta__aro"><div class="lampadas" id="lampadas" aria-hidden="true"></div></div>
+          <div class="roleta__giro" id="giro"><canvas id="roda" role="img" aria-label="Roleta misteriosa: o filme só aparece quando ela para"></canvas></div>
+          <div class="roleta__ponteiro" id="ponteiro" aria-hidden="true"><i></i></div>
+          <button type="button" class="roleta__cubo" id="btn-cubo" tabindex="-1" aria-hidden="true" disabled>Girar</button>
+        </div>
+        <div class="lider" id="lider" hidden aria-hidden="true"><b id="lider-numero">3</b></div>
+        <div class="telao__grao" aria-hidden="true"></div>
       </div>
+      <div class="ribalta" aria-hidden="true"></div>
     </section>
 
-    <aside class="ingresso" id="ingresso" aria-labelledby="ingresso-titulo">
+    <div class="feixe" aria-hidden="true"></div>
+
+    <section class="plateia" aria-label="Plateia">
+      <div class="fileira fileira--fundo" id="fileira-fundo"></div>
+      <div class="fileira fileira--frente" id="fileira-frente"></div>
+    </section>
+
+    <section class="comandos" aria-label="Comandos da sessão">
+      <p class="comandos__situacao" id="contagem" role="status" aria-live="polite">Buscando filmes…</p>
+      <div class="comandos__botoes">
+        <button type="button" class="botao botao--papel botao--ingresso" id="btn-ingresso" aria-haspopup="dialog">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-3a2 2 0 0 0 0-4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M14 5v14" stroke="currentColor" stroke-width="2" stroke-dasharray="2 2.4"/></svg>
+          <span>Ingresso</span>
+          <span class="contador contador--tinta" id="ingresso-contador" hidden>0</span>
+        </button>
+        <button type="button" class="botao botao--pronto" id="btn-pronto" aria-pressed="false" hidden>Pronto</button>
+        <button type="button" class="botao botao--latao botao--girar" id="btn-girar" disabled>Girar</button>
+        <button type="button" class="botao botao--situacao" id="btn-situacao" hidden></button>
+      </div>
+      <p class="comandos__espera" id="sala-espera" hidden></p>
+    </section>
+  </main>
+
+  <footer class="rodape">
+    <p id="rodape-fontes">Catálogo, capas e trailers: TMDB. Este produto usa a API do TMDB, mas não é endossado nem certificado pelo TMDB. Notas: informação cortesia do IMDb (imdb.com), usada com permissão. Onde assistir: JustWatch. Notas dos críticos e prêmios: OMDb (CC BY-NC 4.0), com dados do Metacritic e do Rotten Tomatoes.</p>
+  </footer>
+
+  <!-- Revelação do filme sorteado -->
+  <div class="revelacao" id="revelacao" role="dialog" aria-modal="true" aria-label="Filme sorteado" hidden>
+    <div class="tela">
+      <div class="tela__fundo" id="res-fundo"></div>
+      <div class="tela__rolagem" id="res-rolagem" tabindex="-1"></div>
+    </div>
+    <div class="cortina cortina--esq" aria-hidden="true"></div>
+    <div class="cortina cortina--dir" aria-hidden="true"></div>
+  </div>
+
+  <canvas class="confete" id="confete" aria-hidden="true" hidden></canvas>
+
+  <!-- Ingresso: os filtros -->
+  <dialog class="folha" id="dlg-ingresso" aria-labelledby="ingresso-titulo">
+    <div class="ingresso">
       <header class="ingresso__topo">
-        <h2 id="ingresso-titulo">Seu ingresso</h2>
-        <p id="resumo-filtros">Sem filtros: qualquer filme pode sair.</p>
+        <div>
+          <h2 id="ingresso-titulo">Seu ingresso</h2>
+          <p id="resumo-filtros">Sem filtros: qualquer filme pode sair.</p>
+        </div>
+        <button type="button" class="fechar fechar--tinta" data-fechar aria-label="Fechar ingresso">×</button>
       </header>
 
       <form class="ingresso__corpo" id="form-filtros" autocomplete="off">
-        <fieldset class="campo">
+        <p class="ingresso__aviso-sala" id="ingresso-aviso-sala" hidden>Este é o ingresso da sala: vale para todos. Qualquer mudança pede PRONTO de novo.</p>
+
+        <fieldset class="campo campo--genero">
           <legend>Gênero</legend>
+          <button type="button" class="botao botao--liso limpar-topo" id="btn-limpar-topo">Limpar filtros</button>
           <p class="campo__dica">Um toque inclui, dois toques excluem.</p>
           <div class="chips" id="f-generos"></div>
           <div class="combinar" id="f-combinar" hidden>
@@ -94,6 +163,12 @@
         </fieldset>
 
         <fieldset class="campo">
+          <legend id="f-votos-rotulo">Mínimo de avaliações</legend>
+          <p class="campo__dica">Quanto mais avaliações, mais confiável é a nota.</p>
+          <div class="chips" id="f-votos"></div>
+        </fieldset>
+
+        <fieldset class="campo" id="campo-portugues">
           <legend>Em português</legend>
           <div class="chips" id="f-portugues"></div>
           <p class="campo__dica campo__dica--abaixo" id="f-portugues-dica"></p>
@@ -107,6 +182,12 @@
         <fieldset class="campo">
           <legend>Tipo de achado</legend>
           <div class="chips" id="f-achado"></div>
+          <div class="combinar" id="campo-premios" hidden>
+            <span>Vencedores de</span>
+            <div class="chips chips--mini" id="f-premios"></div>
+            <p class="campo__dica campo__dica--abaixo" id="f-premios-dica"></p>
+          </div>
+          <p class="campo__dica campo__dica--abaixo" id="f-achado-dica"></p>
         </fieldset>
 
         <fieldset class="campo" id="campo-provedores" hidden>
@@ -115,9 +196,6 @@
         </fieldset>
 
         <div class="campo campo--dupla">
-          <label>Idioma original
-            <select id="f-idioma"></select>
-          </label>
           <label id="campo-classificacao">Classificação até
             <select id="f-classificacao"></select>
           </label>
@@ -128,37 +206,114 @@
           <button type="button" class="botao botao--liso" id="btn-limpar">Limpar filtros</button>
         </div>
       </form>
-    </aside>
-  </main>
 
-  <footer class="rodape">
-    <p id="rodape-fontes">Catálogo, capas e trailers: TMDB. Este produto usa a API do TMDB, mas não é endossado nem certificado pelo TMDB. Notas: informação cortesia do IMDb (imdb.com), usada com permissão. Onde assistir: JustWatch.</p>
-  </footer>
-
-  <!-- Revelação do filme sorteado -->
-  <div class="revelacao" id="revelacao" role="dialog" aria-modal="true" aria-label="Filme sorteado" hidden>
-    <div class="tela">
-      <div class="tela__fundo" id="res-fundo"></div>
-      <div class="tela__rolagem" id="res-rolagem" tabindex="-1"></div>
+      <footer class="ingresso__pe">
+        <p id="ingresso-contagem" role="status" aria-live="polite">Buscando filmes…</p>
+      </footer>
     </div>
-    <div class="cortina cortina--esq" aria-hidden="true"></div>
-    <div class="cortina cortina--dir" aria-hidden="true"></div>
-  </div>
+  </dialog>
 
-  <canvas class="confete" id="confete" aria-hidden="true" hidden></canvas>
-
-  <!-- Minha lista -->
-  <dialog class="gaveta" id="dlg-lista" aria-labelledby="lista-titulo">
+  <!-- Meus filmes e histórico da sala -->
+  <dialog class="gaveta" id="dlg-historico" aria-labelledby="historico-titulo">
     <header class="gaveta__topo">
-      <h2 id="lista-titulo">Minha lista</h2>
-      <button type="button" class="fechar" data-fechar aria-label="Fechar lista">×</button>
+      <h2 id="historico-titulo">Meus filmes</h2>
+      <button type="button" class="fechar" data-fechar aria-label="Fechar">×</button>
     </header>
-    <div class="gaveta__corpo" id="lista-corpo"></div>
+    <div class="abas" id="historico-abas" role="tablist" hidden>
+      <button type="button" role="tab" class="aba" data-aba="sala" aria-selected="true">Sala</button>
+      <button type="button" role="tab" class="aba" data-aba="meus" aria-selected="false">Meus filmes</button>
+    </div>
+    <div class="gaveta__corpo" id="historico-corpo"></div>
+  </dialog>
+
+  <!-- Sala de cinema: criar ou entrar -->
+  <dialog class="janela" id="dlg-sala" aria-labelledby="sala-titulo">
+    <div class="janela__conteudo">
+      <header class="janela__topo">
+        <h2 id="sala-titulo">Sala de cinema</h2>
+        <button type="button" class="fechar" data-fechar aria-label="Fechar">×</button>
+      </header>
+      <div id="sala-corpo"></div>
+    </div>
+  </dialog>
+
+  <!-- Perfil (o seu e o de quem está nas suas salas) -->
+  <dialog class="janela janela--perfil" id="dlg-conta" aria-labelledby="conta-titulo">
+    <div class="janela__conteudo">
+      <header class="janela__topo">
+        <h2 id="conta-titulo">Perfil</h2>
+        <button type="button" class="fechar" data-fechar aria-label="Fechar">×</button>
+      </header>
+      <div id="conta-corpo"></div>
+    </div>
+  </dialog>
+
+  <!-- Criar o perfil: apelido e foto são obrigatórios e a janela não fecha sem eles -->
+  <dialog class="janela" id="dlg-boasvindas" data-obrigatorio aria-labelledby="boasvindas-titulo">
+    <div class="janela__conteudo">
+      <header class="janela__topo">
+        <h2 id="boasvindas-titulo">Crie seu perfil</h2>
+      </header>
+      <p class="janela__texto">Sua conta Google está ligada. Falta escolher um apelido e uma foto: eles aparecem para quem estiver nas suas salas de cinema.</p>
+      <div class="boasvindas__foto">
+        <span class="avatar avatar--grande" id="boasvindas-avatar" aria-hidden="true">?</span>
+        <div class="boasvindas__botoes">
+          <button type="button" class="botao botao--contorno botao--compacto" id="boasvindas-galeria">Escolher foto</button>
+          <button type="button" class="botao botao--contorno botao--compacto so-toque" id="boasvindas-camera">Tirar foto</button>
+        </div>
+      </div>
+      <label class="entrada">Apelido
+        <input type="text" id="boasvindas-apelido" maxlength="20" autocomplete="nickname" spellcheck="false" placeholder="Como os amigos te chamam">
+        <small>De 2 a 20 letras ou números.</small>
+      </label>
+      <p class="janela__aviso" id="boasvindas-aviso" role="status" aria-live="polite"></p>
+      <div class="janela__acoes">
+        <button type="button" class="botao botao--latao" id="boasvindas-salvar" disabled>Concluir perfil</button>
+        <button type="button" class="botao botao--liso-claro" id="boasvindas-sair">Sair da conta</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Avaliar um filme (a janelinha de nota) -->
+  <dialog class="janela janela--nota" id="dlg-nota" aria-labelledby="nota-titulo">
+    <div class="janela__conteudo">
+      <header class="janela__topo">
+        <h2 id="nota-titulo">Dar nota</h2>
+        <button type="button" class="fechar" data-fechar aria-label="Fechar">×</button>
+      </header>
+      <div id="nota-corpo"></div>
+    </div>
+  </dialog>
+
+  <!-- Ajustar a foto de perfil -->
+  <input type="file" id="foto-arquivo" accept="image/*" hidden>
+  <input type="file" id="foto-camera" accept="image/*" capture="user" hidden>
+  <dialog class="janela janela--foto" id="dlg-foto" aria-labelledby="foto-titulo">
+    <div class="janela__conteudo">
+      <header class="janela__topo">
+        <h2 id="foto-titulo">Ajustar foto</h2>
+        <button type="button" class="fechar" data-fechar aria-label="Cancelar">×</button>
+      </header>
+      <p class="janela__texto">Arraste a foto para posicionar e use o zoom para enquadrar. Só o que fica dentro do círculo aparece na poltrona.</p>
+      <div class="recorte" id="recorte">
+        <canvas id="recorte-canvas" tabindex="0" aria-label="Área de ajuste da foto. Setas movem a foto; mais e menos mudam o zoom."></canvas>
+      </div>
+      <div class="avaliar">
+        <label class="avaliar__rotulo" for="foto-zoom">Zoom</label>
+        <div class="avaliar__linha">
+          <input type="range" id="foto-zoom" min="1" max="4" step="0.01" value="1">
+        </div>
+      </div>
+      <div class="janela__acoes">
+        <button type="button" class="botao botao--latao" id="foto-salvar">Salvar foto</button>
+        <button type="button" class="botao botao--liso-claro" data-fechar>Cancelar</button>
+      </div>
+    </div>
   </dialog>
 
   <!-- Configuração das chaves -->
   <dialog class="janela" id="dlg-config" aria-labelledby="config-titulo">
-    <form method="dialog" id="form-config">
+    <form method="dialog" id="form-config" class="janela__conteudo">
       <header class="janela__topo">
         <h2 id="config-titulo">Conectar ao catálogo ao vivo</h2>
         <button type="button" class="fechar" data-fechar aria-label="Fechar configuração">×</button>

@@ -1,0 +1,4 @@
+92099	51	58	20779	Won 1 Oscar. 11 wins & 10 nominations total
+944835	65	61	20779	Nominated for 1 Oscar. 4 wins & 16 nominations total
+970179	83	93	20779	Won 5 Oscars. 61 wins & 194 nominations total
+2085059	x		20779	

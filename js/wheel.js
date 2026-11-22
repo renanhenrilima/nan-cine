@@ -159,22 +159,35 @@ export class Roleta {
   }
 
   /**
-   * Gira e para numa fatia qualquer. Devolve uma Promise que resolve quando
-   * a roda para, ou null se ela já estiver girando.
+   * Sorteia como será o próximo giro. Na sala, quem gira manda estes números
+   * para todos, e cada aparelho mostra exatamente o mesmo giro.
    */
-  girar() {
+  static parametros(fatias = 12) {
+    return {
+      parada: Math.floor(Math.random() * fatias),
+      folga: Math.random() - 0.5, // não para sempre no meio da fatia
+      voltas: 6 + Math.floor(Math.random() * 3),
+      duracao: Math.round(6600 + Math.random() * 1400),
+    };
+  }
+
+  /**
+   * Gira e para na fatia indicada (ou numa qualquer). Devolve uma Promise que
+   * resolve quando a roda para, ou null se ela já estiver girando.
+   */
+  girar(parametros = Roleta.parametros(this.fatias)) {
     if (this.girando) return null;
     this.girando = true;
     this.destaque = -1;
     this.desenhar();
 
     const seg = TAU / this.fatias;
-    const parada = Math.floor(Math.random() * this.fatias);
-    const folga = (Math.random() - 0.5) * seg * 0.72; // não para sempre no meio da fatia
+    const parada = parametros.parada % this.fatias;
+    const folga = parametros.folga * seg * 0.72;
     const reduzido = movimentoReduzido();
     const recuo = reduzido ? 0 : 0.22;
-    const voltas = reduzido ? 1 : 6 + Math.floor(Math.random() * 3);
-    const duracao = reduzido ? 1400 : 6600 + Math.random() * 1400;
+    const voltas = reduzido ? 1 : parametros.voltas;
+    const duracao = reduzido ? 1400 : parametros.duracao;
     const tRecuo = reduzido ? 0 : 320;
 
     const inicio = this.angulo;

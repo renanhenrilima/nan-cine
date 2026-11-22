@@ -142,6 +142,198 @@ export async function notaImdb(imdbId) {
   return (await notaImdbLocal(imdbId)) || notaImdbOmdb(imdbId);
 }
 
+/* ---------- Vencedores de prêmios ---------- */
+// Lista gerada por ferramentas/atualizar-premios.mjs (Wikidata + TMDB):
+// [tmdb, imdb, ano, gêneros, duração, prêmios]
+
+let basePremios;   // undefined = ainda não conferida; null = não existe
+
+export async function prepararPremios() {
+  if (basePremios !== undefined) return basePremios;
+  try {
+    const r = await fetch('dados/premios.json', { cache: 'no-cache' });
+    const d = r.ok ? await r.json() : null;
+    basePremios = d?.filmes?.length ? d : null;
+  } catch {
+    basePremios = null;
+  }
+  return basePremios;
+}
+
+export const temPremios = () => Boolean(basePremios);
+export const listaDePremios = () => Object.entries(basePremios?.premios || {});
+
+/**
+ * Filmes de uma lista pronta (prêmios, críticos) que passam pelos filtros que dá para
+ * conferir sem consultar cada filme. Cada item: [tmdb, imdb, ano, gêneros, duração, extra].
+ */
+function listaPossiveis(lista, f, extra) {
+  const incluir = Object.keys(f.generos).filter((id) => f.generos[id] === 1).map(Number);
+  const excluir = Object.keys(f.generos).filter((id) => f.generos[id] === -1).map(Number);
+  const { de, ate } = intervaloEpoca(f);
+  const anoDe = de ? Number(de.slice(0, 4)) : 0;
+  const anoAte = ate ? Number(ate.slice(0, 4)) : 9999;
+  const [durMin, durMax] = DURACOES[f.duracao] || [null, null];
+
+  return lista.filter((item) => {
+    const [, , ano, generos, duracao] = item;
+    if (!extra(item)) return false;
+    if (ano < anoDe || ano > anoAte) return false;
+    if (incluir.length) {
+      const tem = (id) => generos.includes(id);
+      if (f.combinar === 'todos' ? !incluir.every(tem) : !incluir.some(tem)) return false;
+    }
+    if (excluir.some((id) => generos.includes(id))) return false;
+    if (durMin && duracao < durMin) return false;
+    if (durMax && duracao > durMax) return false;
+    return true;
+  });
+}
+
+const ORDEM_CLASSIFICACAO = ['L', '10', '12', '14', '16', '18'];
+const estadoListas = new Map(); // combinação de filtros → { restantes, aprovados }
+const LOTE_DA_LISTA = 24;
+const LOTES_POR_RODADA = 6;
+
+/** Confere, filme a filme, o que o TMDB só informa na ficha do filme. */
+async function conferirDaLista(id, f, notaMin, votosMin) {
+  let d;
+  try {
+    d = await tmdb(`/movie/${id}`, {
+      language: CONFIG.IDIOMA,
+      append_to_response: 'videos,release_dates,watch/providers',
+      include_video_language: 'pt',
+    });
+  } catch (erro) {
+    if (erro instanceof ErroApi && erro.tipo === 'chave') throw erro;
+    return null;
+  }
+  if (!d.poster_path) return null;
+
+  const imdbId = d.imdb_id || '';
+  const filme = { ...resumir(d), imdbId, imdb: await notaImdbLocal(imdbId) };
+  const br = lancamentoBR(d);
+  const noBrasil = d['watch/providers']?.results?.[CONFIG.REGIAO];
+  filme.portugues = sinaisDePortugues(d, noBrasil, br);
+
+  if (fonteDaNota() === 'imdb' && notaMin > 0 && notaDeReferencia(filme) < notaMin) return null;
+  if (votosMin > 0 && (votosDeReferencia(filme) || 0) < votosMin) return null;
+
+  if (f.classificacao) {
+    const cert = br?.release_dates?.map((r) => r.certification).find(Boolean);
+    if (!cert || ORDEM_CLASSIFICACAO.indexOf(cert) < 0
+      || ORDEM_CLASSIFICACAO.indexOf(cert) > ORDEM_CLASSIFICACAO.indexOf(f.classificacao)) return null;
+  }
+  if (f.provedores.length) {
+    const daqui = ['flatrate', 'free', 'ads'].flatMap((tipo) => noBrasil?.[tipo] || []).map((p) => p.provider_id);
+    if (!f.provedores.some((id) => daqui.includes(id))) return null;
+  } else if (f.portugues === 'legendado' && !filme.portugues.noBrasil) {
+    return null;
+  }
+  if (f.portugues === 'dublado' && !(filme.portugues.cinemaNoBrasil || filme.portugues.original)) return null;
+  return filme;
+}
+
+async function sortearDaLista(nome, lista, f, vistos, quantos, extra) {
+  const notaMin = Number(f.notaMin) || 0;
+  const votosMin = Math.max(0, Number(f.votosMin ?? 1000) || 0);
+  const possiveis = listaPossiveis(lista, f, extra).filter(([id]) => !vistos.has(id));
+  if (!possiveis.length) return { total: 0, filmes: [] };
+
+  // Cada combinação de filtros lembra o que já conferiu e o que passou.
+  const chave = JSON.stringify([nome, f.generos, f.combinar, f.epoca, f.anoDe, f.anoAte, f.duracao, f.premios,
+    f.provedores, f.classificacao, f.portugues, notaMin, votosMin]);
+  let estado = estadoListas.get(chave);
+  if (!estado) {
+    estado = { restantes: embaralhar(possiveis.map(([id]) => id)), aprovados: new Map() };
+    estadoListas.set(chave, estado);
+  }
+  const doConjunto = new Set(possiveis.map(([id]) => id));
+  const disponiveis = () => [...estado.aprovados.values()].filter((x) => doConjunto.has(x.id));
+
+  for (let lote = 0; lote < LOTES_POR_RODADA && disponiveis().length < quantos && estado.restantes.length; lote++) {
+    const ids = estado.restantes.splice(0, LOTE_DA_LISTA).filter((id) => doConjunto.has(id));
+    const filmes = await Promise.all(ids.map((id) => conferirDaLista(id, f, notaMin, votosMin)));
+    for (const filme of filmes) if (filme) estado.aprovados.set(filme.id, filme);
+  }
+  // Acabou a lista sem esgotar a paciência: recomeça do início na próxima rodada.
+  if (!estado.restantes.length && !disponiveis().length) estadoListas.delete(chave);
+
+  return { total: possiveis.length, filmes: embaralhar(disponiveis()).slice(0, quantos) };
+}
+
+/* ---------- Notas dos críticos e prêmios do filme (OMDb) ---------- */
+// Arquivos gerados por ferramentas/atualizar-criticos.mjs: o site só lê; a chave do OMDb
+// fica no GitHub. A base cresce todo dia, então nem todo filme tem nota de críticos ainda.
+
+const PASTA_CRITICOS = 'dados/criticos/';
+/** Média do Metacritic e do Rotten Tomatoes a partir da qual o filme conta como "melhor avaliado pelos críticos". */
+export const LIMITE_CRITICOS = 75;
+let infoCriticos;                 // undefined = ainda não conferida; null = não existe
+let poolCriticos;
+const fatiasCriticos = new Map(); // nome da fatia → Promise<Map<id, { meta, rt, premio }>>
+
+export async function prepararCriticos() {
+  if (infoCriticos !== undefined) return infoCriticos;
+  try {
+    const r = await fetch(`${PASTA_CRITICOS}info.json`, { cache: 'no-cache' });
+    const d = r.ok ? await r.json() : null;
+    infoCriticos = d?.fatias ? d : null;
+  } catch {
+    infoCriticos = null;
+  }
+  return infoCriticos;
+}
+
+export const temCriticos = () => Boolean(infoCriticos?.noPool);
+export const infoDosCriticos = () => infoCriticos || null;
+
+async function prepararPoolCriticos() {
+  if (poolCriticos) return poolCriticos;
+  try {
+    const r = await fetch(`${PASTA_CRITICOS}pool.json?v=${infoCriticos?.versao || ''}`);
+    poolCriticos = r.ok ? await r.json() : { filmes: [] };
+  } catch {
+    poolCriticos = { filmes: [] };
+  }
+  return poolCriticos;
+}
+
+function fatiaDeCriticos(nome) {
+  if (!fatiasCriticos.has(nome)) {
+    const pedido = fetch(`${PASTA_CRITICOS}${nome}.txt?v=${infoCriticos?.versao || ''}`)
+      .then((r) => (r.ok ? r.text() : ''))
+      .then((texto) => {
+        const mapa = new Map();
+        for (const linha of texto.split('\n')) {
+          const [id, meta, rt, , premio] = linha.split('\t');
+          if (!id || meta === 'x') continue; // "x": não é filme
+          mapa.set(Number(id), {
+            meta: meta === '' ? null : Number(meta),
+            rt: rt === '' ? null : Number(rt),
+            premio: premio || '',
+          });
+        }
+        return mapa;
+      })
+      .catch(() => new Map());
+    fatiasCriticos.set(nome, pedido);
+  }
+  return fatiasCriticos.get(nome);
+}
+
+/** Notas dos críticos e resumo de prêmios de um filme, ou null se a base ainda não tem. */
+export async function criticosDe(imdbId) {
+  if (!infoCriticos) return null;
+  const numero = parseInt(String(imdbId).replace(/\D/g, ''), 10);
+  if (!numero) return null;
+  const nome = (numero % infoCriticos.fatias).toString(16).padStart(2, '0');
+  const achado = (await fatiaDeCriticos(nome)).get(numero);
+  if (!achado) return null;
+  const notas = [achado.meta, achado.rt].filter((n) => n !== null);
+  return { ...achado, media: notas.length ? Math.round(notas.reduce((a, b) => a + b, 0) / notas.length) : null };
+}
+
 /* ---------- Filtros → parâmetros ---------- */
 
 const DECADAS = {
@@ -212,8 +404,6 @@ function montarBusca(f) {
   if (durMin) p['with_runtime.gte'] = durMin;
   if (durMax) p['with_runtime.lte'] = durMax;
 
-  if (f.idioma) p.with_original_language = f.idioma;
-
   if (f.provedores.length) {
     p.with_watch_providers = f.provedores.join('|');
     p.watch_region = CONFIG.REGIAO;
@@ -221,10 +411,9 @@ function montarBusca(f) {
   }
 
   // Versão em português. Nenhuma fonte gratuita registra dublagem e legenda filme
-  // a filme, então usamos sinais: áudio original, disponibilidade no Brasil
-  // (serviços daqui trazem legenda e, muitas vezes, dublagem) e trailer dublado.
-  if (f.portugues === 'original') p.with_original_language = 'pt';
-  if (f.portugues === 'disponivel' && !f.provedores.length) {
+  // a filme, então usamos sinais: filme disponível em serviços no Brasil (legendado)
+  // e lançado nos cinemas do Brasil, onde a maioria tem sessão dublada (dublado).
+  if (f.portugues === 'legendado' && !f.provedores.length) {
     p.watch_region = CONFIG.REGIAO;
     p.with_watch_monetization_types = 'flatrate|free|ads|rent|buy';
   }
@@ -237,14 +426,11 @@ function montarBusca(f) {
   // "Tipo de achado" decide o piso de votos, a ordem e até onde sortear.
   const recente = f.epoca === 'cartaz' || f.epoca === 'ano';
   let notaMin = Number(f.notaMin) || 0;
+  const votosMin = Math.max(0, Number(f.votosMin ?? 1000) || 0);
   let ordem = sortearUm(ORDENS_VARIADAS);
   let tetoPaginas = 500;
 
-  if (f.achado === 'populares') {
-    p['vote_count.gte'] = recente ? 20 : 300;
-    ordem = 'popularity.desc';
-    tetoPaginas = 12;
-  } else if (f.achado === 'aclamados') {
+  if (f.achado === 'usuarios') {
     p['vote_count.gte'] = recente ? 100 : 1500;
     notaMin = Math.max(notaMin, 7.5);
     ordem = 'vote_average.desc';
@@ -253,7 +439,14 @@ function montarBusca(f) {
     p['vote_count.lte'] = 1500;
     notaMin = Math.max(notaMin, 7);
   } else {
-    p['vote_count.gte'] = recente ? 10 : 150;
+    // Sem mínimo de avaliações, o piso do TMDB desce para alcançar filmes pouco votados.
+    p['vote_count.gte'] = recente || votosMin === 0 ? 10 : 150;
+  }
+
+  // Mínimo de avaliações (conferido filme a filme no IMDb). Aqui só sobe o piso de
+  // votos do TMDB, que costuma ter uns cem votos para cada um do IMDb.
+  if (votosMin > 0) {
+    p['vote_count.gte'] = Math.max(p['vote_count.gte'], Math.floor(votosMin / 100));
   }
 
   // O TMDB só sabe filtrar pela nota dele. Quando a referência é o IMDb, pedimos
@@ -261,14 +454,14 @@ function montarBusca(f) {
   const piso = fonteDaNota() === 'imdb' ? notaMin - 1 : notaMin;
   if (piso > 0) p['vote_average.gte'] = piso;
 
-  // Trailer em português é mais comum nos filmes populares: sorteia entre eles.
-  const soTrailerPt = f.portugues === 'trailer';
-  if (soTrailerPt) {
+  // Filmes lançados nos cinemas do Brasil são os populares: sorteia entre eles.
+  const soDublado = f.portugues === 'dublado';
+  if (soDublado) {
     ordem = 'popularity.desc';
-    tetoPaginas = Math.min(tetoPaginas, 60);
+    tetoPaginas = Math.min(tetoPaginas, 150);
   }
 
-  return { params: p, ordem, tetoPaginas, notaMin, soTrailerPt };
+  return { params: p, ordem, tetoPaginas, notaMin, votosMin, soDublado };
 }
 
 /** Sinais de que o filme tem versão em português (ver comentário em montarBusca). */
@@ -285,8 +478,12 @@ function sinaisDePortugues(d, noBrasil, lancamentoBR) {
     legendado: videosPt.some((v) => /legendad/i.test(v.name || '')),
     noBrasil: ofertas,
     lancadoNoBrasil: Boolean(lancamentoBR),
+    // Tipos 2 e 3 do TMDB: estreia limitada e estreia nos cinemas.
+    cinemaNoBrasil: Boolean(lancamentoBR?.release_dates?.some((r) => r.type === 2 || r.type === 3)),
   };
 }
+
+const lancamentoBR = (d) => d.release_dates?.results?.find((r) => r.iso_3166_1 === CONFIG.REGIAO);
 
 /** Acrescenta a cada candidato o id e a nota do IMDb e os sinais de português. */
 async function enriquecer(filmes) {
@@ -294,11 +491,11 @@ async function enriquecer(filmes) {
     try {
       const d = await tmdb(`/movie/${filme.id}`, {
         language: CONFIG.IDIOMA,
-        append_to_response: 'videos',
+        append_to_response: 'videos,release_dates',
         include_video_language: 'pt',
       });
       const imdbId = d.imdb_id || '';
-      return { ...filme, imdbId, imdb: await notaImdbLocal(imdbId), portugues: sinaisDePortugues(d) };
+      return { ...filme, imdbId, imdb: await notaImdbLocal(imdbId), portugues: sinaisDePortugues(d, null, lancamentoBR(d)) };
     } catch {
       return { ...filme, imdb: null, portugues: null };
     }
@@ -307,6 +504,9 @@ async function enriquecer(filmes) {
 
 /** A nota que vale para o filtro: IMDb quando existe, TMDB como reserva. */
 export const notaDeReferencia = (filme) => (filme.imdb ? filme.imdb.nota : filme.nota);
+
+/** Quantas avaliações sustentam essa nota (IMDb quando existe, TMDB como reserva). */
+const votosDeReferencia = (filme) => (filme.imdb ? filme.imdb.votos : filme.votos);
 
 /* ---------- Sorteio dos candidatos ---------- */
 
@@ -351,8 +551,19 @@ const LEVAS_EXTRAS = 10;
 export async function sortearCandidatos(filtros, vistos = new Set(), quantos = CONFIG.AMOSTRA) {
   if (!modoAoVivo()) return sortearDemo(filtros, vistos, quantos);
 
-  const { params, ordem, tetoPaginas, notaMin, soTrailerPt } = montarBusca(filtros);
+  if (filtros.achado === 'premiados' && temPremios()) {
+    const premios = filtros.premios || [];
+    return sortearDaLista('premios', basePremios.filmes, filtros, vistos, quantos,
+      (item) => !premios.length || premios.some((p) => item[5].includes(p)));
+  }
+  if (filtros.achado === 'criticos' && temCriticos()) {
+    const pool = await prepararPoolCriticos();
+    return sortearDaLista('criticos', pool.filmes, filtros, vistos, quantos, (item) => item[5] >= LIMITE_CRITICOS);
+  }
+
+  const { params, ordem, tetoPaginas, notaMin, votosMin, soDublado } = montarBusca(filtros);
   const assinatura = JSON.stringify(params);
+  const chaveAprovados = `${assinatura}|${notaMin}|${votosMin}|${soDublado}`;
 
   let meta = totais.get(assinatura);
   if (!meta) {
@@ -364,11 +575,11 @@ export async function sortearCandidatos(filtros, vistos = new Set(), quantos = C
 
   const max = Math.max(1, Math.min(meta.paginas, 500, tetoPaginas));
   const usarImdb = fonteDaNota() === 'imdb';
-  const conferirUmAUm = usarImdb || soTrailerPt;
+  const conferirUmAUm = usarImdb || soDublado || votosMin > 0;
   // Notas altas no IMDb eliminam muita gente na conferência: tenta mais levas.
-  const levas = soTrailerPt || (usarImdb && notaMin >= 7) ? 4 : 2;
-  const aprovados = aprovadosPorBusca.get(assinatura) || new Map();
-  aprovadosPorBusca.set(assinatura, aprovados);
+  const levas = soDublado || (usarImdb && notaMin >= 7) ? 4 : 2;
+  const aprovados = aprovadosPorBusca.get(chaveAprovados) || new Map();
+  aprovadosPorBusca.set(chaveAprovados, aprovados);
   const escolhidos = new Map();
   const lidas = new Set();
 
@@ -394,13 +605,16 @@ export async function sortearCandidatos(filtros, vistos = new Set(), quantos = C
     let candidatos = embaralhar([...unicos.values()]);
     if (conferirUmAUm) {
       // Com nota muito alta sobram poucos filmes: confere mais deles por leva.
-      const lote = usarImdb && notaMin >= 8 ? 40 : quantos + 10;
+      const lote = (usarImdb && notaMin >= 8) || votosMin >= 50000 ? 40 : quantos + 10;
       candidatos = await enriquecer(candidatos.slice(0, lote));
       if (usarImdb && notaMin > 0) {
         candidatos = candidatos.filter((filme) => notaDeReferencia(filme) >= notaMin);
       }
-      if (soTrailerPt) {
-        candidatos = candidatos.filter((filme) => filme.portugues?.trailer || filme.portugues?.original);
+      if (votosMin > 0) {
+        candidatos = candidatos.filter((filme) => (votosDeReferencia(filme) || 0) >= votosMin);
+      }
+      if (soDublado) {
+        candidatos = candidatos.filter((filme) => filme.portugues?.cinemaNoBrasil || filme.portugues?.original);
       }
       for (const filme of candidatos) aprovados.set(filme.id, filme);
     }
@@ -427,7 +641,7 @@ function sortearDemo(f, vistos, quantos) {
   const { de, ate } = intervaloEpoca(f);
   const [durMin, durMax] = DURACOES[f.duracao] || [null, null];
   let notaMin = Number(f.notaMin) || 0;
-  if (f.achado === 'aclamados') notaMin = Math.max(notaMin, 7.5);
+  if (f.achado === 'usuarios') notaMin = Math.max(notaMin, 7.5);
 
   const passam = FILMES_DEMO.filter((m) => {
     if (vistos.has(m.id)) return false;
@@ -440,8 +654,6 @@ function sortearDemo(f, vistos, quantos) {
     if (ate && m.data > ate) return false;
     if (durMin && m.duracao < durMin) return false;
     if (durMax && m.duracao > durMax) return false;
-    if (f.idioma && m.idioma !== f.idioma) return false;
-    if (f.portugues === 'original' && m.idioma !== 'pt') return false;
     if (m.nota < notaMin) return false;
     return true;
   });
@@ -461,12 +673,12 @@ function escolherTrailer(videos = []) {
     const emPortugues = v.iso_639_1 === 'pt';
     let pontos = pesoTipo[v.type] || 1;
     if (emPortugues) pontos += v.iso_3166_1 === 'BR' ? 100 : 90;
-    if (/dublado|legendado/i.test(nome)) pontos += 6;
+    if (/dublad|dobrad|legendad/i.test(nome)) pontos += 6;
     if (v.official) pontos += 2;
     if (!melhor || pontos > melhor.pontos) {
       let versao = 'original';
-      if (/dublado/i.test(nome)) versao = 'dublado';
-      else if (/legendado/i.test(nome)) versao = 'legendado';
+      if (/dublad|dobrad/i.test(nome)) versao = 'dublado';
+      else if (/legendad/i.test(nome)) versao = 'legendado';
       else if (emPortugues) versao = 'portugues';
       melhor = { pontos, chave: v.key, nome, versao, tipo: v.type };
     }
@@ -516,6 +728,7 @@ export async function detalhes(id, idiomaOriginal) {
     elenco: (d.credits?.cast || []).slice(0, 5).map((c) => c.name),
     posterGrande: d.poster_path ? `${IMAGEM}w500${d.poster_path}` : null,
     imdbId,
+    criticos: await criticosDe(imdbId),
     trailer: escolherTrailer(d.videos?.results),
     portugues: sinaisDePortugues(d, br, lancBR),
     provedores: br ? {

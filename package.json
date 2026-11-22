@@ -5,7 +5,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node servidor.mjs",
+    "start": "node ferramentas/local.mjs",
+    "site": "node servidor.mjs",
     "imdb": "node ferramentas/atualizar-imdb.mjs"
   }
 }

@@ -32,15 +32,14 @@ O arquivo do IMDb não tem títulos em português, sinopse, cartaz nem trailer. 
 
 **AdoroCinema.** O site não tem API pública, e copiar as notas automaticamente fere os termos de uso dele. A versão atual abre a busca do filme no AdoroCinema, onde aparecem as notas de imprensa e de usuários. Mostrar essas notas dentro do Nan Cine exigiria um acordo com o site.
 
-**Dublado ou legendado.** Nenhuma fonte gratuita registra, filme a filme, se existe dublagem ou legenda em português. O filtro "Em português" usa sinais:
+**Dublado ou legendado.** Nenhuma fonte gratuita registra, filme a filme, se existe dublagem ou legenda em português. O filtro "Em português" usa pistas:
 
 | Opção | O que o app exige | Confiabilidade |
 |---|---|---|
-| Legendado ou dublado | Filme disponível em algum serviço no Brasil | Alta para legenda; dublagem é comum, mas não garantida |
-| Com trailer em português | Existe trailer em português cadastrado no TMDB | Alta para o que promete (existe trailer), mas pode ser dublado ou legendado, do Brasil ou de Portugal; filmes novos ou menos conhecidos costumam ficar de fora |
+| Legendado | Filme disponível em algum serviço no Brasil | Alta para legenda |
+| Dublado | Filme lançado nos cinemas do Brasil (a maioria tem sessão dublada) | Média: é uma pista, não uma confirmação. A tela avisa e recomenda "Tanto faz" para ver mais resultados |
 
-Houve uma opção "Dublado" na primeira versão. Foi retirada depois de medir no TMDB real: entre 20 filmes populares, nenhum tinha trailer com "dublado" no nome (3 diziam "legendado"), e muitos trailers em português são de Portugal, onde se diz "dobrado". Como o sinal não era confiável, o filtro devolvia quase nada.
-| Áudio original em português | Idioma original é português | Exata |
+Medido no TMDB real: cerca de 80% dos filmes populares têm lançamento nos cinemas do Brasil. Já os trailers em português cadastrados no TMDB são, na prática, todos de Portugal (nenhum com região Brasil em 100 filmes), por isso o trailer deixou de ser pista de dublagem. O áudio original em português saiu do filtro, a pedido.
 
 A tela do resultado tem a linha "Em português", que diz qual sinal foi encontrado.
 
@@ -82,12 +81,16 @@ Escolhas e motivos:
 | Gênero | 18 gêneros; um toque inclui, dois excluem; "pelo menos um" ou "todos" | `with_genres`, `without_genres` |
 | Época | Em cartaz, último ano, décadas, até 1979, anos à escolha | `primary_release_date` |
 | Nota mínima no IMDb | 0 a 9, de meio em meio ponto | Pré-filtro no TMDB e conferência no IMDb |
-| Em português | Tanto faz, legendado ou dublado, com trailer em português, áudio original | Ver seção 3 |
+| Em português | Tanto faz, legendado, dublado | Ver seção 3 |
 | Duração | Até 1h30, de 1h30 a 2h, mais de 2h | `with_runtime` |
-| Tipo de achado | Populares, aclamados, joias escondidas | Piso e teto de votos, ordem do sorteio |
+| Tipo de achado | Melhor avaliação dos usuários, dos críticos, joias escondidas, vencedores de prêmios | Nota alta do IMDb com muitos votos; piso e teto de votos; lista de premiados (abaixo) |
 | Onde assistir | Serviços de streaming do Brasil | `with_watch_providers` |
-| Idioma original | 14 idiomas | `with_original_language` |
 | Classificação até | Livre a 18 anos | `certification.lte` (Brasil) |
+| Mínimo de avaliações | Sem mínimo, 1 mil (padrão), 10 mil, 50 mil, 100 mil | Conferido filme a filme nos votos do IMDb |
+
+**Notas dos críticos e prêmios do filme (OMDb).** O OMDb libera 1.000 consultas por dia na chave gratuita, o que não sustenta uma consulta por giro. Por isso o script `ferramentas/atualizar-criticos.mjs` roda no GitHub, junta até 900 filmes por dia (os de mais votos no IMDb primeiro) e grava os arquivos em `dados/criticos`. O site só lê esses arquivos: ninguém gasta a cota, e a chave `OMDB_KEY` fica guardada só no GitHub, fora do site. Alimenta o filtro "Melhor avaliação dos críticos" (média do Metacritic e do Rotten Tomatoes de 75 ou mais) e as linhas "Críticos" e "Prêmios" do resultado. A cobertura cresce a cada dia (hoje: 800 filmes consultados). O conteúdo do OMDb é CC BY-NC 4.0 (uso não comercial, com crédito no rodapé).
+
+**Vencedores de prêmios.** O Wikidata (base livre da Wikipédia) diz quais filmes ganharam Oscar, Globo de Ouro, BAFTA, Palma de Ouro, Urso de Ouro e Leão de Ouro. O script `ferramentas/atualizar-premios.mjs` junta isso ao TMDB e grava `dados/premios.json` (cerca de 1.480 filmes), renovado todo dia. O sorteio sai dessa lista e aplica os demais filtros. A cobertura do Wikidata varia: o Oscar está bem completo (1.129 filmes, incluindo curtas e prêmios honorários); Globo de Ouro e BAFTA só trazem os prêmios dados ao filme em si (170 e 167). Os Grammys não entram: premiam música, não filmes. 
 
 Sem filtro nenhum, o sorteio vale para o catálogo inteiro (com um piso de 150 votos no TMDB, para não cair em filmes sem informação). "Sortear filtros" escolhe uma combinação ao acaso. Os filtros ficam salvos no navegador.
 

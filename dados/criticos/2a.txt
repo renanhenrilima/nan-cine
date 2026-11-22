@@ -1,0 +1,7 @@
+206634	84	92	20779	Nominated for 3 Oscars. 49 wins & 89 nominations total
+829482	76	88	20779	11 wins & 24 nominations total
+1392170	68	84	20779	Won 1 BAFTA Award. 34 wins & 51 nominations total
+6263850	56	77	20779	31 wins & 71 nominations total
+9243946	72	92	20779	Nominated for 4 Primetime Emmys. 4 wins & 24 nominations total
+11286314	49		20779	Nominated for 4 Oscars. 25 wins & 100 nominations total
+16311594	68	82	20779	Won 1 Oscar. 34 wins & 134 nominations total

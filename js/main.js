@@ -257,7 +257,7 @@ function acenderLuzes() {
   if (elCinema.dataset.luz === 'acesa') return;
   elCinema.dataset.luz = 'acesa';
   document.body.classList.remove('apagado');
-  setTimeout(() => elCinema.dataset.luz === 'acesa' && som.plateia(), 1500);
+  setTimeout(() => elCinema.dataset.luz === 'acesa' && som.ambiente(), 1500);
 }
 
 async function contagemRegressiva() {
@@ -1820,9 +1820,15 @@ btnSom.addEventListener('click', () => {
 });
 
 // O burburinho da plateia começa no primeiro toque (o navegador só libera som depois disso).
-document.addEventListener('pointerdown', () => {
-  if (elCinema.dataset.luz === 'acesa') som.plateia();
-}, { once: true });
+// O navegador só libera som depois do primeiro toque ou tecla: a trilha e os sussurros começam aí
+// (já na página de entrada).
+const comecarAmbiente = () => {
+  if (elCinema.dataset.luz === 'acesa') som.ambiente();
+  document.removeEventListener('pointerdown', comecarAmbiente);
+  document.removeEventListener('keydown', comecarAmbiente);
+};
+document.addEventListener('pointerdown', comecarAmbiente);
+document.addEventListener('keydown', comecarAmbiente);
 
 /* ---------- Configuração das chaves ---------- */
 

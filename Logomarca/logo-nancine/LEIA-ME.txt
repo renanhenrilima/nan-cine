@@ -1,0 +1,17 @@
+NanCine — variações da logomarca
+
+Conceito: arco de cinema clássico com monograma N e play em espaço negativo.
+Paleta de referência: bordô, dourado e creme, conforme as telas fornecidas.
+
+Arquivos PNG:
+- nancine-horizontal.png: marca principal com fundo transparente para superfícies claras.
+- nancine-compacta.png: composição vertical com fundo transparente.
+- nancine-simbolo.png: símbolo isolado com fundo transparente para espaços compactos.
+- nancine-icone-app.png: arte quadrada com fundo bordô para ícone do aplicativo.
+- nancine-clara-fundo-bordo.png: marca clara aplicada sobre fundo bordô opaco.
+
+São arquivos raster PNG; este pacote não contém originais vetoriais SVG.
+O ícone é a arte-base: não inclui pacote Android de densidades, camadas adaptativas ou ícone Windows .ico.
+Não distorça a proporção das marcas. Preserve as margens do ícone ao aplicar máscaras do sistema.
+
+Produzido com a ferramenta integrada image_gen. Prompts em prompts-geracao.json.

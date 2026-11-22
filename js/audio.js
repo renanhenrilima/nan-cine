@@ -245,6 +245,89 @@ export const som = {
     tom({ de: 1568, inicio: 0.09, dur: 0.35, ganho: 0.06, ataque: 0.004 });
   },
 
+  /** Tudo que toca antes da sessão: o burburinho da plateia e a trilha de filme ao fundo. */
+  ambiente() {
+    this.plateia();
+    this.trilha();
+  },
+
+  /**
+   * Trilha de filme ao fundo, bem baixinha: acordes de cordas que respiram devagar
+   * (Dó maior com sétima, Lá menor, Fá maior, Sol com sexta) e notas de celesta, com reverberação.
+   */
+  trilha() {
+    if (!preparar() || trilhaAtiva) return;
+    const t0 = ctx.currentTime;
+    const geral = ctx.createGain();
+    geral.gain.setValueAtTime(0.0001, t0);
+    geral.gain.exponentialRampToValueAtTime(0.5, t0 + 4);
+    // Reverb: ruído que decai, como o eco de uma sala grande.
+    const reverb = ctx.createConvolver();
+    const imp = ctx.createBuffer(2, ctx.sampleRate * 2.6, ctx.sampleRate);
+    for (let c = 0; c < 2; c++) {
+      const d = imp.getChannelData(c);
+      for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length) ** 2.4;
+    }
+    reverb.buffer = imp;
+    const seco = ctx.createGain();
+    seco.gain.value = 0.55;
+    const molhado = ctx.createGain();
+    molhado.gain.value = 0.7;
+    const entrada = ctx.createGain();
+    entrada.connect(seco).connect(geral);
+    entrada.connect(reverb).connect(molhado).connect(geral);
+    geral.connect(saida);
+
+    const ACORDES = [
+      [130.81, 196.0, 246.94, 329.63], // Dó maior com sétima
+      [110.0, 164.81, 220.0, 261.63],  // Lá menor
+      [87.31, 174.61, 220.0, 261.63],  // Fá maior
+      [98.0, 196.0, 246.94, 293.66],   // Sol com sexta
+    ];
+    const PASSO = 6.5;
+    let i = 0;
+    const tocar = () => {
+      if (!trilhaAtiva || ctx.state !== 'running') return;
+      const t = ctx.currentTime + 0.05;
+      const notas = ACORDES[i % ACORDES.length];
+      notas.forEach((freq, k) => {
+        for (const desvio of [-4, 4]) {
+          const osc = ctx.createOscillator();
+          osc.type = 'sawtooth';
+          osc.frequency.value = freq;
+          osc.detune.value = desvio;
+          const filtro = ctx.createBiquadFilter();
+          filtro.type = 'lowpass';
+          filtro.frequency.value = 700 + k * 120;
+          const vol = ctx.createGain();
+          vol.gain.setValueAtTime(0.0001, t);
+          vol.gain.linearRampToValueAtTime(0.011, t + 2.2);
+          vol.gain.linearRampToValueAtTime(0.0001, t + PASSO + 1.4);
+          osc.connect(filtro).connect(vol).connect(entrada);
+          osc.start(t);
+          osc.stop(t + PASSO + 1.6);
+        }
+      });
+      // Celesta: arpejo suave por cima do acorde.
+      [2, 3, 1, 3, 2, 0].forEach((n, k) => {
+        const osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.value = notas[n] * 4;
+        const vol = ctx.createGain();
+        const ini = t + 1 + k * 0.95;
+        vol.gain.setValueAtTime(0.0001, ini);
+        vol.gain.exponentialRampToValueAtTime(0.012, ini + 0.02);
+        vol.gain.exponentialRampToValueAtTime(0.0001, ini + 1.6);
+        osc.connect(vol).connect(entrada);
+        osc.start(ini);
+        osc.stop(ini + 1.7);
+      });
+      i++;
+    };
+    trilhaAtiva = { geral, relogio: setInterval(tocar, PASSO * 1000) };
+    tocar();
+  },
+
   /** Burburinho da plateia antes do filme. Some sozinho quando as luzes apagam. */
   plateia() {
     if (!preparar() || plateia) return;
@@ -279,7 +362,19 @@ export const som = {
 };
 
 let plateia = null;
+let trilhaAtiva = null;
+function silenciarTrilha() {
+  if (!trilhaAtiva || !ctx) return;
+  const { geral, relogio } = trilhaAtiva;
+  trilhaAtiva = null;
+  clearInterval(relogio);
+  const t = ctx.currentTime;
+  geral.gain.cancelScheduledValues(t);
+  geral.gain.setValueAtTime(geral.gain.value || 0.5, t);
+  geral.gain.exponentialRampToValueAtTime(0.0001, t + 1.6);
+}
 function silenciarPlateia() {
+  silenciarTrilha();
   if (!plateia || !ctx) return;
   const { geral, nos } = plateia;
   plateia = null;
